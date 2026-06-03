@@ -1,0 +1,68 @@
+{
+  "name": "crossflow",
+  "version": "0.1.0",
+  "description": "轻量级跨境电商工作流桌面端",
+  "author": "CrossFlow",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "electron-vite build && electron-builder",
+    "preview": "electron-vite preview",
+    "test": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.4.0",
+    "antd": "^5.20.0",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2",
+    "electron-store": "^8.2.0",
+    "node-cron": "^3.0.3",
+    "openai": "^4.52.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "sql.js": "^1.11.0",
+    "uuid": "^10.0.0",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.0",
+    "@playwright/test": "^1.45.0",
+    "@types/node-cron": "^3.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "cross-env": "^10.1.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0",
+    "electron-vite": "^5.0.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "vite-plugin-electron": "^0.28.0",
+    "vite-plugin-electron-renderer": "^0.14.0",
+    "vitest": "^2.0.0"
+  },
+  "build": {
+    "appId": "com.crossflow.app",
+    "productName": "CrossFlow",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ]
+  }
+}

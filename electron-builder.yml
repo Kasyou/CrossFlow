@@ -1,0 +1,43 @@
+appId: com.crossflow.app
+productName: CrossFlow
+copyright: Copyright © 2026
+
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CrossFlow
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.png
+  category: public.app-category.business
+
+linux:
+  target:
+    - AppImage
+  icon: resources/icon.png
+  category: Office
