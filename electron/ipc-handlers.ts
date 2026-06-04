@@ -122,6 +122,23 @@ export function registerIpcHandlers(): void {
     return runManualSync(code);
   });
 
+  // ---- AI Translation ----
+  ipcMain.handle('ai:translate', async (_e, text) => {
+    try {
+      const Store = require('electron-store');
+      const store = new Store({ encryptionKey: 'crossflow-settings' });
+      const provider = store.get('aiProvider', 'deepseek');
+      const apiKey = store.get('aiApiKey', '');
+      if (!apiKey) return `[请在设置中配置AI API Key] ${text}`;
+      const { getAiAdapter } = require('./ai/adapter');
+      const adapter = getAiAdapter({ provider, apiKey });
+      if (!adapter) return `[AI未配置] ${text}`;
+      return await adapter.translate(text);
+    } catch (err: any) {
+      return `[翻译失败] ${text} — ${err.message}`;
+    }
+  });
+
   // ---- Dashboard ----
   ipcMain.handle(IPC.DASHBOARD_METRICS, async () => {
     return getDashboardMetrics();
@@ -147,7 +164,6 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC.DASHBOARD_SKU_PROFIT, async () => {
-    const { getDbSync } = require('./db/connection');
     return getDbSync().prepare(
       `SELECT o.sku, p.name as productName, COUNT(*) as orderCount, COALESCE(SUM(o.total_amount),0) as revenue,
               COALESCE(SUM(o.total_amount) - COUNT(*) * p.cost_price, 0) as estimatedProfit

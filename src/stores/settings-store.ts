@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { IPC } from '../shared/ipc-channels';
 import type { PlatformConfig } from '../types/platform';
 
+function getApi() {
+  const api = (window as any).electronAPI;
+  if (!api) {
+    console.warn('electronAPI not available — running outside Electron');
+    return null;
+  }
+  return api;
+}
+
 interface SettingsState {
   platforms: PlatformConfig[];
   loading: boolean;
@@ -17,25 +26,29 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   loadPlatforms: async () => {
     set({ loading: true });
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) { set({ loading: false }); return; }
     const platforms = await api.invoke(IPC.PLATFORM_LIST);
     set({ platforms, loading: false });
   },
 
   saveAuth: async (code, authData) => {
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) return;
     await api.invoke(IPC.PLATFORM_SAVE_AUTH, code, authData);
     get().loadPlatforms();
   },
 
   toggleSync: async (code, enabled) => {
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) return;
     await api.invoke(IPC.PLATFORM_TOGGLE_SYNC, code, enabled);
     get().loadPlatforms();
   },
 
   syncNow: async (code) => {
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) return;
     return api.invoke(IPC.PLATFORM_SYNC_NOW, code);
   },
 }));

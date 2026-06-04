@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { IPC } from '../shared/ipc-channels';
 import type { DashboardMetrics, SalesTrendPoint, PlatformSalesShare, SkuProfitRank } from '../types/dashboard';
 
+function getApi() {
+  const api = (window as any).electronAPI;
+  if (!api) {
+    console.warn('electronAPI not available — running outside Electron');
+    return null;
+  }
+  return api;
+}
+
 interface DashboardState {
   metrics: DashboardMetrics | null;
   salesTrend: SalesTrendPoint[];
@@ -22,7 +31,8 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   loadAll: async () => {
     set({ loading: true });
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) { set({ loading: false }); return; }
     const [metrics, salesTrend, platformShare, skuProfit, lowStock] = await Promise.all([
       api.invoke(IPC.DASHBOARD_METRICS),
       api.invoke(IPC.DASHBOARD_SALES_TREND, 30),

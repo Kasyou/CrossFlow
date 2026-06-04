@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
-import { runMigrations, closeDb, initDatabase } from './db/connection';
+import { runMigrations, closeDb, initDatabase, saveDb } from './db/connection';
 import { registerIpcHandlers } from './ipc-handlers';
 import { startAllSyncJobs } from './sync/scheduler';
 import { createTray, destroyTray } from './tray';
@@ -22,7 +22,7 @@ function createWindow() {
   });
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL + '/src/index.html');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/src/index.html'));
   }
@@ -46,6 +46,28 @@ app.whenReady().then(async () => {
     mainWindow!.hide();
   });
 });
+
+  // Schedule daily database backup
+  setInterval(() => {
+    try {
+      const Store = require('electron-store');
+      const store = new Store({ encryptionKey: 'crossflow-settings' });
+      const backupPath = store.get('backupPath', '');
+      if (backupPath) {
+        const fs = require('fs');
+        const path = require('path');
+        const srcPath = path.join(app.getPath('userData'), 'crossflow.db');
+        const date = new Date().toISOString().slice(0, 10);
+        const destPath = path.join(backupPath, `crossflow-backup-${date}.db`);
+        if (fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, destPath);
+          console.log(`Database backup saved to ${destPath}`);
+        }
+      }
+    } catch (err) {
+      console.error('Database backup failed:', err);
+    }
+  }, 86400000); // Every 24 hours
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { IPC } from '../shared/ipc-channels';
 import type { Order, OrderFilter } from '../types/order';
 
+function getApi() {
+  const api = (window as any).electronAPI;
+  if (!api) {
+    console.warn('electronAPI not available — running outside Electron');
+    return null;
+  }
+  return api;
+}
+
 interface OrderState {
   orders: Order[];
   total: number;
@@ -27,7 +36,8 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   loadOrders: async () => {
     set({ loading: true });
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) { set({ loading: false }); return; }
     const { filter } = get();
     const result = await api.invoke(IPC.ORDERS_LIST, {
       status: filter.status,
@@ -49,14 +59,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   setSelectedRowKeys: (keys) => set({ selectedRowKeys: keys }),
 
   shipOrders: async (ids) => {
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) return;
     await api.invoke(IPC.ORDERS_BATCH_SHIP, ids);
     get().loadOrders();
     get().refreshPendingCount();
   },
 
   refreshPendingCount: async () => {
-    const api = (window as any).electronAPI;
+    const api = getApi();
+    if (!api) return;
     const count = await api.invoke(IPC.ORDERS_PENDING_COUNT);
     set({ pendingCount: count });
   },

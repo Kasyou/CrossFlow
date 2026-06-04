@@ -3,7 +3,7 @@ import { Card, Typography, List, Switch, Button, Tag, Modal, Form, Input, messag
 import { useSettingsStore } from '../../stores/settings-store';
 import ImportExcel from '../../components/shared/ImportExcel';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const platformDefaults = [
   { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region'] },
@@ -69,6 +69,24 @@ const Settings: React.FC = () => {
             );
           }}
         />
+      </Card>
+
+      <Card title="数据备份" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Text>备份目录：</Text>
+          <Button onClick={async () => {
+            const api = (window as any).electronAPI;
+            if (!api) return;
+            const path = prompt('请输入备份目录路径（例如：D:\\Backup）');
+            if (path) {
+              await api.invoke('settings:set', 'backupPath', path);
+              message.success('备份目录已设置');
+            }
+          }}>
+            设置备份目录
+          </Button>
+          <Text type="secondary">设置后每日自动备份数据库</Text>
+        </div>
       </Card>
 
       <Modal

@@ -5,6 +5,7 @@ import MetricCard from '../../components/dashboard/MetricCard';
 import SalesChart from '../../components/dashboard/SalesChart';
 import PlatformPie from '../../components/dashboard/PlatformPie';
 import StockAlertList from '../../components/dashboard/StockAlertList';
+import SkuProfitRank from '../../components/dashboard/SkuProfitRank';
 
 const { Title } = Typography;
 
@@ -46,12 +47,7 @@ const Dashboard: React.FC = () => {
           <Card title="库存预警 TOP10"><StockAlertList /></Card>
         </Col>
         <Col span={12}>
-          <Card title="待处理订单">
-            <div style={{ textAlign: 'center', padding: 20 }}>
-              <Title level={2} style={{ color: '#1677ff' }}>{metrics?.todayOrderCount || 0}</Title>
-              <p>今日累计订单，实时更新</p>
-            </div>
-          </Card>
+          <Card title="SKU利润排行 TOP20"><SkuProfitRank /></Card>
         </Col>
       </Row>
     </div>

@@ -11,3 +11,4 @@ release/
 Thumbs.db
 .playwright-mcp/
 *.png
+test-results/
