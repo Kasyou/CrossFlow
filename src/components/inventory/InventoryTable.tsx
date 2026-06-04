@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, InputNumber, Modal, Space, Drawer, Timeline, Typography } from 'antd';
+import { Table, Button, InputNumber, Modal, Space, Drawer, Timeline, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useInventoryStore } from '../../stores/inventory-store';
 import type { InventoryItem } from '../../types/inventory';
@@ -33,6 +33,32 @@ const InventoryTable: React.FC = () => {
     {
       title: '操作', width: 200, render: (_, record) => (
         <Space>
+          <Button
+            size="small"
+            danger
+            disabled={record.available > record.safety_stock}
+            onClick={async () => {
+              const api = (window as any).electronAPI;
+              if (!api) return;
+              Modal.confirm({
+                title: '确认暂停销售',
+                content: `将在所有平台上暂停 ${record.sku} 的销售，当前可售库存：${record.available}`,
+                okText: '确认暂停',
+                cancelText: '取消',
+                okButtonProps: { danger: true },
+                onOk: async () => {
+                  const result = await api.invoke('inventory:pauseSku', record.sku);
+                  if (result.success) {
+                    message.success(result.message);
+                  } else {
+                    message.error(result.message);
+                  }
+                },
+              });
+            }}
+          >
+            暂停
+          </Button>
           <Button size="small" onClick={() => { fetchLogs(record.product_id); setLogDrawer({ open: true, productId: record.product_id, sku: record.sku }); }}>日志</Button>
           <Button size="small" onClick={() => { setRestockModal({ open: true, item: record }); setRestockQty(0); }}>补货</Button>
           <Button size="small" onClick={() => receiveRestock(record.product_id, record.warehouse_id, record.in_transit)} disabled={record.in_transit <= 0}>到仓</Button>

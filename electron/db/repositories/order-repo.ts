@@ -89,6 +89,24 @@ export const OrderRepo = {
     tx(ids);
   },
 
+  getMergeableOrders(): any[] {
+    const db = getDbSync();
+    const groups = db.prepare(
+      `SELECT sku, shipping_address, COUNT(*) as cnt, GROUP_CONCAT(id) as order_ids, GROUP_CONCAT(platform_order_id) as platform_ids
+       FROM "order"
+       WHERE status = 'pending' AND shipping_address IS NOT NULL AND shipping_address != ''
+       GROUP BY sku, shipping_address
+       HAVING cnt > 1
+       ORDER BY cnt DESC
+       LIMIT 10`
+    ).all();
+    return groups.map((g: any) => ({
+      ...g,
+      order_ids: g.order_ids.split(','),
+      platform_ids: g.platform_ids.split(','),
+    }));
+  },
+
   getPendingCount(): number {
     return (getDbSync().prepare(`SELECT COUNT(*) as count FROM "order" WHERE status IN ('pending','matched')`).get() as { count: number }).count;
   },

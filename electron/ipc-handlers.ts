@@ -59,6 +59,19 @@ export function registerIpcHandlers(): void {
     return InventoryRepo.getLogs(productId, limit || 50);
   });
 
+  ipcMain.handle(IPC.INVENTORY_PAUSE_SKU, async (_e, sku: string) => {
+    const product = getDbSync().prepare('SELECT id FROM product WHERE sku = ?').get(sku) as any;
+    if (!product) return { success: false, message: 'SKU not found' };
+    getDbSync().prepare(
+      `UPDATE product_platform SET status = 'paused' WHERE product_id = ? AND status = 'active'`
+    ).run(product.id);
+    return { success: true, message: `已暂停 ${sku} 在所有平台的销售` };
+  });
+
+  ipcMain.handle('inventory:restockSuggestions', async () => {
+    return InventoryRepo.getRestockSuggestions();
+  });
+
   // ---- Warehouse ----
   ipcMain.handle(IPC.WAREHOUSE_LIST, async () => {
     return WarehouseRepo.getAll();
@@ -120,6 +133,30 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.PLATFORM_SYNC_NOW, async (_e, code) => {
     return runManualSync(code);
+  });
+
+  // ---- Order Merge ----
+  ipcMain.handle('orders:mergeable', async () => {
+    return OrderRepo.getMergeableOrders();
+  });
+
+  ipcMain.handle('orders:merge', async (_e, orderIds: string[]) => {
+    if (orderIds.length < 2) return { success: false, message: 'Need at least 2 orders' };
+    const primary = OrderRepo.getById(orderIds[0]);
+    if (!primary) return { success: false, message: 'Primary order not found' };
+    const totalQty = orderIds.reduce((sum, id) => {
+      const o = OrderRepo.getById(id);
+      return sum + (o?.quantity || 0);
+    }, 0);
+    getDbSync().prepare('UPDATE "order" SET quantity = ? WHERE id = ?').run(totalQty, primary.id);
+    OrderRepo.batchUpdateStatus(orderIds.slice(1), 'cancelled');
+    return { success: true, message: `已合并 ${orderIds.length} 个订单，总数量：${totalQty}` };
+  });
+
+  // ---- Logistics Tracking ----
+  ipcMain.handle('tracking:check', async () => {
+    const { checkAllTracking } = require('./sync/tracking');
+    return checkAllTracking();
   });
 
   // ---- AI Translation ----

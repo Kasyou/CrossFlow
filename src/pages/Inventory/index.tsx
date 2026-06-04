@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography, Row, Col, Button, Modal, Form, Input, Select, message } from 'antd';
+import { Card, Typography, Row, Col, Button, Modal, Form, Input, Select, message, Table, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { IPC } from '../../shared/ipc-channels';
 import { useInventoryStore } from '../../stores/inventory-store';
@@ -14,11 +14,20 @@ const Inventory: React.FC = () => {
   const [whModalOpen, setWhModalOpen] = useState(false);
   const [whEditing, setWhEditing] = useState<any>(null);
   const [whForm] = Form.useForm();
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  const loadSuggestions = async () => {
+    const api = (window as any).electronAPI;
+    if (!api) return;
+    const result = await api.invoke('inventory:restockSuggestions');
+    setSuggestions(result || []);
+  };
 
   useEffect(() => {
     loadAll();
     loadLowStock();
     loadWarehouses();
+    loadSuggestions();
   }, []);
 
   const handleWhSave = async () => {
@@ -56,6 +65,41 @@ const Inventory: React.FC = () => {
     <div>
       <Title level={3} style={{ marginTop: 0 }}>库存管理</Title>
       <StockAlert />
+      {suggestions.length > 0 && (
+        <Card title="智能补货建议" size="small" style={{ marginBottom: 16 }}>
+          <Table
+            rowKey="sku"
+            size="small"
+            pagination={false}
+            dataSource={suggestions}
+            columns={[
+              { title: 'SKU', dataIndex: 'sku', width: 120 },
+              { title: '商品', dataIndex: 'product_name', width: 140, ellipsis: true },
+              { title: '仓库', dataIndex: 'warehouse_name', width: 90 },
+              { title: '可售', dataIndex: 'available', width: 60, render: (v: number) => <Text type={v === 0 ? 'danger' : 'warning'}>{v}</Text> },
+              { title: '在途', dataIndex: 'in_transit', width: 60 },
+              { title: '日均销量', dataIndex: 'avg_daily_sales', width: 80, render: (v: number) => v.toFixed(1) },
+              { title: '建议补货', dataIndex: 'suggested_restock_qty', width: 90, render: (v: number) => <Text strong style={{ color: '#1677ff' }}>{v}</Text> },
+              { title: '紧急度', dataIndex: 'urgency', width: 80, render: (v: string) => {
+                const map: Record<string, { color: string; text: string }> = { urgent: { color: 'red', text: '紧急' }, high: { color: 'orange', text: '高' }, normal: { color: 'blue', text: '普通' } };
+                return <Tag color={map[v]?.color}>{map[v]?.text || v}</Tag>;
+              }},
+              { title: '操作', width: 80, render: (_: any, record: any) => (
+                <Button size="small" type="primary" onClick={() => {
+                  const api = (window as any).electronAPI;
+                  if (!api) return;
+                  const wh = warehouses.find((w: any) => w.name === record.warehouse_name);
+                  api.invoke('inventory:restock', record.sku, wh?.id || '', record.suggested_restock_qty, '智能建议补货');
+                  message.success(`已添加补货单：${record.sku} x ${record.suggested_restock_qty}`);
+                  loadAll();
+                  loadLowStock();
+                  loadSuggestions();
+                }}>一键补货</Button>
+              )},
+            ]}
+          />
+        </Card>
+      )}
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text strong style={{ fontSize: 16 }}>仓库概览</Text>
         <Button type="primary" icon={<PlusOutlined />} size="small" onClick={() => { setWhEditing(null); whForm.resetFields(); setWhModalOpen(true); }}>
