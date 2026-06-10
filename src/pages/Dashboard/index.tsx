@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Row, Col, Card, Typography } from 'antd';
 import { useDashboardStore } from '../../stores/dashboard-store';
+import { useInventoryStore } from '../../stores/inventory-store';
 import MetricCard from '../../components/dashboard/MetricCard';
 import SalesChart from '../../components/dashboard/SalesChart';
 import PlatformPie from '../../components/dashboard/PlatformPie';
@@ -11,8 +12,9 @@ const { Title } = Typography;
 
 const Dashboard: React.FC = () => {
   const { metrics, loadAll } = useDashboardStore();
+  const { loadLowStock } = useInventoryStore();
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadAll(); loadLowStock(); }, []);
 
   return (
     <div>
@@ -29,7 +31,7 @@ const Dashboard: React.FC = () => {
           <MetricCard title="SKU总数" value={metrics?.totalSkuCount || 0} suffix="个" />
         </Col>
         <Col span={6}>
-          <MetricCard title="库存周转" value={23} suffix="天" />
+          <MetricCard title="库存周转" value={metrics?.avgInventoryTurnoverDays || 0} suffix="天" />
         </Col>
       </Row>
 

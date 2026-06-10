@@ -30,8 +30,8 @@ export const ProductRepo = {
   create(data: { sku: string; name: string; name_en?: string; category?: string; cost_price?: number; weight_kg?: number; safety_stock?: number }): ProductRow {
     const id = uuid();
     getDbSync().prepare(
-      `INSERT INTO product (id, sku, name, name_en, category, cost_price, weight_kg, safety_stock)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO product (id, sku, name, name_en, category, cost_price, weight_kg, safety_stock, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
     ).run(id, data.sku, data.name, data.name_en || null, data.category || null, data.cost_price ?? 0, data.weight_kg ?? 0, data.safety_stock ?? 10);
     return this.getById(id)!;
   },

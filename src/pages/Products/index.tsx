@@ -3,6 +3,7 @@ import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Selec
 import { PlusOutlined, EditOutlined, DeleteOutlined, TranslationOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useProductStore } from '../../stores/product-store';
+import { IPC } from '../../shared/ipc-channels';
 import type { Product } from '../../types/product';
 
 const { Title } = Typography;
@@ -109,7 +110,7 @@ const Products: React.FC = () => {
                 if (!api) { message.warning('AI翻译功能仅支持在Electron应用中运行'); return; }
                 message.loading({ content: '正在翻译...', key: 'translate' });
                 try {
-                  const result = await api.invoke('ai:translate', cnName);
+                  const result = await api.invoke(IPC.AI_TRANSLATE, cnName);
                   form.setFieldsValue({ name_en: result });
                   message.success({ content: '翻译完成', key: 'translate' });
                 } catch {

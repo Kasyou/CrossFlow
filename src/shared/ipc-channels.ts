@@ -44,4 +44,17 @@ export const IPC = {
   // Settings
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
+
+  // Merge
+  ORDERS_MERGEABLE: 'orders:mergeable',
+  ORDERS_MERGE: 'orders:merge',
+
+  // Tracking
+  TRACKING_CHECK: 'tracking:check',
+
+  // AI
+  AI_TRANSLATE: 'ai:translate',
+
+  // Inventory (additional)
+  INVENTORY_RESTOCK_SUGGESTIONS: 'inventory:restockSuggestions',
 } as const;

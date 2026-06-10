@@ -2,6 +2,16 @@ import * as XLSX from 'xlsx';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 
+function safeInt(val: unknown, fallback = 1): number {
+  const n = parseInt(String(val ?? ''), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function safeFloat(val: unknown, fallback = 0): number {
+  const n = parseFloat(String(val ?? ''));
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export function importTemuExcel(filePath: string): { orders: any[]; message: string } {
   if (!fs.existsSync(filePath)) {
     throw new Error(`File not found: ${filePath}`);
@@ -15,10 +25,10 @@ export function importTemuExcel(filePath: string): { orders: any[]; message: str
   const orders = rows.map((row: any) => ({
     platform_order_id: row['订单号'] || row['Order ID'] || uuid(),
     sku: row['SKU'] || row['商品SKU'] || '',
-    quantity: parseInt(row['数量'] || row['Quantity'] || '1', 10),
-    unit_price: parseFloat(row['单价'] || row['Unit Price'] || '0'),
+    quantity: safeInt(row['数量'] ?? row['Quantity'], 1),
+    unit_price: safeFloat(row['单价'] ?? row['Unit Price'], 0),
     currency: 'USD',
-    total_amount: parseFloat(row['金额'] || row['Amount'] || '0'),
+    total_amount: safeFloat(row['金额'] ?? row['Amount'], 0),
     buyer_name: row['收货人'] || row['Buyer'] || null,
     shipping_address: row['收货地址'] || row['Shipping Address'] || null,
     status: 'pending',

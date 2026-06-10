@@ -3,6 +3,7 @@ import { Card, Typography, Row, Col, Button, Modal, Form, Input, Select, message
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { IPC } from '../../shared/ipc-channels';
 import { useInventoryStore } from '../../stores/inventory-store';
+import { useWarehouseStore } from '../../stores/warehouse-store';
 import StockAlert from '../../components/inventory/StockAlert';
 import WarehouseCard from '../../components/inventory/WarehouseCard';
 import InventoryTable from '../../components/inventory/InventoryTable';
@@ -10,7 +11,8 @@ import InventoryTable from '../../components/inventory/InventoryTable';
 const { Title, Text } = Typography;
 
 const Inventory: React.FC = () => {
-  const { loadAll, loadLowStock, loadWarehouses, warehouses } = useInventoryStore();
+  const { loadAll, loadLowStock } = useInventoryStore();
+  const { warehouses, loadWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } = useWarehouseStore();
   const [whModalOpen, setWhModalOpen] = useState(false);
   const [whEditing, setWhEditing] = useState<any>(null);
   const [whForm] = Form.useForm();
@@ -19,7 +21,7 @@ const Inventory: React.FC = () => {
   const loadSuggestions = async () => {
     const api = (window as any).electronAPI;
     if (!api) return;
-    const result = await api.invoke('inventory:restockSuggestions');
+    const result = await api.invoke(IPC.INVENTORY_RESTOCK_SUGGESTIONS);
     setSuggestions(result || []);
   };
 
@@ -32,30 +34,24 @@ const Inventory: React.FC = () => {
 
   const handleWhSave = async () => {
     const values = await whForm.validateFields();
-    const api = (window as any).electronAPI;
-    if (!api) return;
     if (whEditing) {
-      await api.invoke(IPC.WAREHOUSE_UPDATE, whEditing.id, { name: values.name, country: values.country });
+      await updateWarehouse(whEditing.id, { name: values.name, country: values.country });
       message.success('仓库已更新');
     } else {
-      await api.invoke(IPC.WAREHOUSE_CREATE, values.name, values.type, values.country || '');
+      await createWarehouse(values.name, values.type, values.country || '');
       message.success('仓库已创建');
     }
     setWhModalOpen(false);
-    loadWarehouses();
     loadAll();
   };
 
   const handleWhDelete = async (id: string) => {
-    const api = (window as any).electronAPI;
-    if (!api) return;
     Modal.confirm({
       title: '确认删除',
       content: '删除仓库将同时删除该仓库下的所有库存记录。',
       onOk: async () => {
-        await api.invoke(IPC.WAREHOUSE_DELETE, id);
+        await deleteWarehouse(id);
         message.success('仓库已删除');
-        loadWarehouses();
         loadAll();
       },
     });
@@ -89,7 +85,7 @@ const Inventory: React.FC = () => {
                   const api = (window as any).electronAPI;
                   if (!api) return;
                   const wh = warehouses.find((w: any) => w.name === record.warehouse_name);
-                  api.invoke('inventory:restock', record.sku, wh?.id || '', record.suggested_restock_qty, '智能建议补货');
+                  api.invoke(IPC.INVENTORY_RESTOCK, record.sku, wh?.id || '', record.suggested_restock_qty, '智能建议补货');
                   message.success(`已添加补货单：${record.sku} x ${record.suggested_restock_qty}`);
                   loadAll();
                   loadLowStock();

@@ -98,12 +98,22 @@ export function getDashboardMetrics() {
 
   const skuCount = (db.prepare('SELECT COUNT(*) as count FROM product').get() as { count: number }).count;
 
+  const totalAvailable = (db.prepare(
+    'SELECT COALESCE(SUM(available), 0) as total FROM inventory'
+  ).get() as { total: number }).total;
+
+  const dailyAvgSales = (db.prepare(
+    `SELECT COALESCE(CAST(COUNT(*) AS REAL) / 30, 0) as avg FROM "order" WHERE order_time >= date('now', '-30 days')`
+  ).get() as { avg: number }).avg;
+
+  const turnoverDays = dailyAvgSales > 0 ? Math.round(totalAvailable / dailyAvgSales) : 0;
+
   return {
     todayRevenue: today.revenue,
     todayOrderCount: today.orderCount,
     yesterdayRevenue: yesterday.revenue,
     yesterdayOrderCount: yesterday.orderCount,
-    avgInventoryTurnoverDays: 0,
+    avgInventoryTurnoverDays: turnoverDays,
     totalSkuCount: skuCount,
   };
 }

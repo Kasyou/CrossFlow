@@ -12,8 +12,20 @@ interface TrackingStatus {
 
 export function checkAllTracking(): TrackingStatus[] {
   const db = getDbSync();
+
+  // Primary: join through product→inventory→warehouse to check warehouse type.
+  // Falls back to address-based check when warehouse data is unavailable.
   const shipped = db.prepare(
-    `SELECT id, tracking_number, shipped_time FROM "order" WHERE status = 'shipped' AND tracking_number IS NOT NULL`
+    `SELECT o.id, o.tracking_number, o.shipped_time, o.shipping_address,
+            CASE WHEN COUNT(w.id) = 0 THEN NULL
+                 ELSE MIN(CASE WHEN w.type = 'domestic' THEN 0 ELSE 1 END)
+            END as has_international
+     FROM "order" o
+     LEFT JOIN product p ON o.product_id = p.id
+     LEFT JOIN inventory i ON p.id = i.product_id
+     LEFT JOIN warehouse w ON i.warehouse_id = w.id
+     WHERE o.status = 'shipped' AND o.tracking_number IS NOT NULL
+     GROUP BY o.id`
   ).all() as any[];
 
   const results: TrackingStatus[] = [];
@@ -23,14 +35,16 @@ export function checkAllTracking(): TrackingStatus[] {
     const shippedDate = new Date(order.shipped_time).getTime();
     const daysInTransit = Math.floor((now - shippedDate) / 86400000);
 
+    const isInternational =
+      order.has_international !== null
+        ? order.has_international === 1
+        : isInternationalByAddress(order.shipping_address);
+
     let status: TrackingStatus['status'] = 'in_transit';
-    // Simple rule-based tracking:
-    // - Domestic (7 days): > 7 days = delayed, > 10 suggested delivery
-    // - International (21 days): > 21 days = delayed, > 30 suggested delivery
-    if (daysInTransit > 30) {
-      status = 'delayed';
-    } else if (daysInTransit > 14) {
-      status = 'delayed'; // conservative threshold
+    if (isInternational) {
+      if (daysInTransit > 21) status = 'delayed';
+    } else {
+      if (daysInTransit > 7) status = 'delayed';
     }
 
     results.push({
@@ -41,10 +55,17 @@ export function checkAllTracking(): TrackingStatus[] {
     });
   }
 
-  // Auto-mark as delivered for very old shipped orders
-  db.prepare(
-    `UPDATE "order" SET status = 'delivered' WHERE status = 'shipped' AND shipped_time < date('now', '-60 days')`
-  ).run();
-
   return results;
+}
+
+function isInternationalByAddress(address: string | null): boolean {
+  if (!address) return false;
+  const a = address.toLowerCase();
+  const countryKeywords = [
+    'united states', 'united kingdom', 'germany', 'france', 'spain', 'italy',
+    'japan', 'korea', 'australia', 'canada', 'brazil', 'mexico',
+    'usa', 'uk', 'eu', 'singapore', 'thailand', 'vietnam', 'indonesia',
+    'philippines', 'malaysia', 'india', 'netherlands', 'sweden', 'poland',
+  ];
+  return countryKeywords.some(kw => a.includes(kw));
 }

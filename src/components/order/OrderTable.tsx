@@ -3,6 +3,7 @@ import { Table, Button, Space, Select, Typography, Tag, message } from 'antd';
 import { SyncOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useOrderStore } from '../../stores/order-store';
+import { IPC } from '../../shared/ipc-channels';
 import OrderStatusTag from './OrderStatusTag';
 import type { Order } from '../../types/order';
 
@@ -38,7 +39,7 @@ const OrderTable: React.FC = () => {
           onClick={async () => {
             const api = (window as any).electronAPI;
             if (!api) return;
-            const results = await api.invoke('tracking:check');
+            const results = await api.invoke(IPC.TRACKING_CHECK);
             const delayed = results.filter((r: any) => r.status === 'delayed');
             if (delayed.length > 0) {
               message.warning(`${delayed.length} 个包裹可能延迟`);

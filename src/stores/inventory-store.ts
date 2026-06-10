@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { IPC } from '../shared/ipc-channels';
-import type { InventoryItem, Warehouse } from '../types/inventory';
+import type { InventoryItem } from '../types/inventory';
 
 function getApi() {
   const api = (window as any).electronAPI;
@@ -14,11 +14,9 @@ function getApi() {
 interface InventoryState {
   items: InventoryItem[];
   lowStock: InventoryItem[];
-  warehouses: Warehouse[];
   loading: boolean;
   loadAll: () => Promise<void>;
   loadLowStock: () => Promise<void>;
-  loadWarehouses: () => Promise<void>;
   restock: (productId: string, warehouseId: string, quantity: number, note?: string) => Promise<void>;
   receiveRestock: (productId: string, warehouseId: string, quantity: number) => Promise<void>;
 }
@@ -26,7 +24,6 @@ interface InventoryState {
 export const useInventoryStore = create<InventoryState>((set, get) => ({
   items: [],
   lowStock: [],
-  warehouses: [],
   loading: false,
 
   loadAll: async () => {
@@ -42,13 +39,6 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (!api) return;
     const lowStock = await api.invoke(IPC.INVENTORY_LOW_STOCK);
     set({ lowStock });
-  },
-
-  loadWarehouses: async () => {
-    const api = getApi();
-    if (!api) return;
-    const warehouses = await api.invoke(IPC.WAREHOUSE_LIST);
-    set({ warehouses });
   },
 
   restock: async (productId, warehouseId, quantity, note) => {

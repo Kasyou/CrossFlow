@@ -1,11 +1,11 @@
 import React from 'react';
 import { List, Typography } from 'antd';
-import { useDashboardStore } from '../../stores/dashboard-store';
+import { useInventoryStore } from '../../stores/inventory-store';
 
 const { Text } = Typography;
 
 const StockAlertList: React.FC = () => {
-  const { lowStock } = useDashboardStore();
+  const { lowStock } = useInventoryStore();
 
   return (
     <List

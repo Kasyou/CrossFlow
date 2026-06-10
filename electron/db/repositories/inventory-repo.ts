@@ -55,7 +55,7 @@ export const InventoryRepo = {
     const existing = this.getByProductWarehouse(productId, warehouseId);
     if (existing) return existing;
     const id = uuid();
-    getDbSync().prepare('INSERT INTO inventory (id, product_id, warehouse_id) VALUES (?, ?, ?)').run(id, productId, warehouseId);
+    getDbSync().prepare('INSERT INTO inventory (id, product_id, warehouse_id, updated_at) VALUES (?, ?, ?, datetime(\'now\'))').run(id, productId, warehouseId);
     return this.getByProductWarehouse(productId, warehouseId)!;
   },
 
@@ -67,7 +67,7 @@ export const InventoryRepo = {
       const newReserved = inv.reserved + quantity;
       db.prepare('UPDATE inventory SET available = ?, reserved = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newReserved, inv.id);
       db.prepare(
-        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'order_reserve', -quantity, newAvailable, newReserved, orderId);
     });
     tx();
@@ -81,7 +81,7 @@ export const InventoryRepo = {
       const newReserved = Math.max(0, inv.reserved - quantity);
       db.prepare('UPDATE inventory SET available = ?, reserved = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newReserved, inv.id);
       db.prepare(
-        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'order_release', quantity, newAvailable, newReserved, orderId);
     });
     tx();
@@ -94,7 +94,7 @@ export const InventoryRepo = {
       const newInTransit = inv.in_transit + quantity;
       db.prepare('UPDATE inventory SET in_transit = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newInTransit, inv.id);
       db.prepare(
-        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'restock', quantity, inv.available, inv.reserved, note || null);
     });
     tx();
@@ -108,7 +108,7 @@ export const InventoryRepo = {
       const newInTransit = Math.max(0, inv.in_transit - quantity);
       db.prepare('UPDATE inventory SET available = ?, in_transit = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newInTransit, inv.id);
       db.prepare(
-        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'restock', quantity, newAvailable, inv.reserved);
     });
     tx();

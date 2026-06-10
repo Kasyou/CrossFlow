@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS product (
   cost_price REAL DEFAULT 0,
   weight_kg REAL DEFAULT 0,
   safety_stock INTEGER DEFAULT 10,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS product_platform (
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   available INTEGER DEFAULT 0,
   reserved INTEGER DEFAULT 0,
   in_transit INTEGER DEFAULT 0,
-  updated_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT,
   UNIQUE(product_id, warehouse_id)
 );
 
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS inventory_log (
   reserved_after INTEGER,
   reference_id TEXT,
   note TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "order" (
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS "order" (
   platform_status TEXT,
   order_time TEXT,
   shipped_time TEXT,
-  synced_at TEXT DEFAULT (datetime('now')),
+  synced_at TEXT,
   UNIQUE(platform_id, platform_order_id)
 );
 

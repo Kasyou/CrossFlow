@@ -1,6 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
-import { runMigrations, closeDb, initDatabase, saveDb } from './db/connection';
+import fs from 'fs';
+import { runMigrations, closeDb, initDatabase } from './db/connection';
+import { getStore } from './store';
 import { registerIpcHandlers } from './ipc-handlers';
 import { startAllSyncJobs } from './sync/scheduler';
 import { createTray, destroyTray } from './tray';
@@ -45,17 +47,13 @@ app.whenReady().then(async () => {
     event.preventDefault();
     mainWindow!.hide();
   });
-});
 
   // Schedule daily database backup
   setInterval(() => {
     try {
-      const Store = require('electron-store');
-      const store = new Store({ encryptionKey: 'crossflow-settings' });
-      const backupPath = store.get('backupPath', '');
+      const store = getStore();
+      const backupPath = store.get('backupPath', '') as unknown as string;
       if (backupPath) {
-        const fs = require('fs');
-        const path = require('path');
         const srcPath = path.join(app.getPath('userData'), 'crossflow.db');
         const date = new Date().toISOString().slice(0, 10);
         const destPath = path.join(backupPath, `crossflow-backup-${date}.db`);
@@ -68,6 +66,7 @@ app.whenReady().then(async () => {
       console.error('Database backup failed:', err);
     }
   }, 86400000); // Every 24 hours
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

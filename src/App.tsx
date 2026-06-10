@@ -10,6 +10,7 @@ import Products from './pages/Products';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Onboarding from './pages/Onboarding';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const App: React.FC = () => {
   const [apiReady, setApiReady] = React.useState(true);
@@ -38,15 +39,17 @@ const App: React.FC = () => {
                     style={{ margin: '0 0 16px 0' }}
                   />
                 )}
-                <Routes>
-                  <Route path="/" element={<Navigate to="/onboarding" replace />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Routes>
+                <ErrorBoundary>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/onboarding" replace />} />
+                    <Route path="/onboarding" element={<Onboarding />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/inventory" element={<Inventory />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Routes>
+                </ErrorBoundary>
               </main>
             </div>
           </div>

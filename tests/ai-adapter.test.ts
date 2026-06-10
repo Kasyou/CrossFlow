@@ -1,0 +1,110 @@
+﻿import { describe, it, expect, beforeAll } from "vitest";
+import OpenAI from "openai";
+
+const API_KEY = "sk-c7c2dbae281248bb8db91a933a28e265";
+const BASE_URL = "https://api.deepseek.com";
+const MODEL = "deepseek-chat";
+
+let client: OpenAI;
+
+beforeAll(() => {
+  client = new OpenAI({ apiKey: API_KEY, baseURL: BASE_URL });
+});
+
+describe("AI Adapter - DeepSeek live integration", () => {
+  it("translates product name to English", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: "Translate this product name to English, keep it concise and suitable for e-commerce listing:\n\n蓝牙耳机Pro\n\nTranslation:"
+      }],
+      max_tokens: 50,
+      temperature: 0.3,
+    });
+    const result = res.choices[0]?.message?.content?.trim() || "";
+    console.log("Translate result:", result);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.toLowerCase()).toMatch(/bluetooth|earbud|headphone|wireless/);
+  }, 30000);
+
+  it("classifies refund reason to correct category", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: 'Classify this refund/return reason into exactly one category: "quality" (product defect/damage), "logistics" (late/damaged in transit), "buyer" (changed mind/wrong order), or "other". Reply with only the category name.\n\nReason: The item arrived with a broken screen\n\nCategory:'
+      }],
+      max_tokens: 10,
+      temperature: 0,
+    });
+    const result = res.choices[0]?.message?.content?.trim().toLowerCase() || "";
+    console.log("Classify result:", result);
+    expect(["quality", "logistics", "buyer", "other"]).toContain(result);
+    expect(result).toBe("quality");
+  }, 30000);
+
+  it("classifies logistics-related refund", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: 'Classify this refund/return reason into exactly one category: "quality" (product defect/damage), "logistics" (late/damaged in transit), "buyer" (changed mind/wrong order), or "other". Reply with only the category name.\n\nReason: Package arrived 2 weeks late\n\nCategory:'
+      }],
+      max_tokens: 10,
+      temperature: 0,
+    });
+    const result = res.choices[0]?.message?.content?.trim().toLowerCase() || "";
+    console.log("Classify logistics result:", result);
+    expect(["quality", "logistics", "buyer", "other"]).toContain(result);
+    expect(result).toBe("logistics");
+  }, 30000);
+
+  it("generates anomaly alert in Chinese", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: "Based on this e-commerce data, write a concise alert message in Chinese for the seller (1-2 sentences max, no greeting):\n\nSKU BT-EP10-BK: today 0 orders vs yesterday 45 orders, drop 100%. Average past 7 days: 38 orders/day.\n\nAlert:"
+      }],
+      max_tokens: 80,
+      temperature: 0.5,
+    });
+    const result = res.choices[0]?.message?.content?.trim() || "";
+    console.log("Anomaly alert:", result);
+    expect(result.length).toBeGreaterThan(0);
+    // Should contain Chinese characters
+    expect(result).toMatch(/[\u4e00-\u9fff]/);
+  }, 30000);
+
+  it("generates anomaly alert for order spike", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: "Based on this e-commerce data, write a concise alert message in Chinese for the seller (1-2 sentences max, no greeting):\n\nSKU CBL-USB-C-1M: today 500 orders vs yesterday 52 orders, spike 862%. Average past 7 days: 48 orders/day.\n\nAlert:"
+      }],
+      max_tokens: 80,
+      temperature: 0.5,
+    });
+    const result = res.choices[0]?.message?.content?.trim() || "";
+    console.log("Spike alert:", result);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).toMatch(/[\u4e00-\u9fff]/);
+  }, 30000);
+
+  it("handles empty/malformed refund reason gracefully", async () => {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{
+        role: "user",
+        content: 'Classify this refund/return reason into exactly one category: "quality" (product defect/damage), "logistics" (late/damaged in transit), "buyer" (changed mind/wrong order), or "other". Reply with only the category name.\n\nReason: asdfghjkl\n\nCategory:'
+      }],
+      max_tokens: 10,
+      temperature: 0,
+    });
+    const result = res.choices[0]?.message?.content?.trim().toLowerCase() || "";
+    console.log("Gibberish classify result:", result);
+    expect(["quality", "logistics", "buyer", "other"]).toContain(result);
+  }, 30000);
+});

@@ -65,8 +65,8 @@ export const OrderRepo = {
   upsert(data: Omit<OrderRow, 'id' | 'synced_at'> & { id?: string }): OrderRow {
     const id = data.id || uuid();
     getDbSync().prepare(
-      `INSERT INTO "order" (id, platform_id, platform_order_id, product_id, sku, quantity, unit_price, currency, total_amount, buyer_name, shipping_address, logistics_provider, tracking_number, status, platform_status, order_time, shipped_time)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO "order" (id, platform_id, platform_order_id, product_id, sku, quantity, unit_price, currency, total_amount, buyer_name, shipping_address, logistics_provider, tracking_number, status, platform_status, order_time, shipped_time, synced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(platform_id, platform_order_id) DO UPDATE SET
          status = excluded.status, platform_status = excluded.platform_status, tracking_number = excluded.tracking_number, shipped_time = excluded.shipped_time, synced_at = datetime('now')`
     ).run(id, data.platform_id, data.platform_order_id, data.product_id, data.sku, data.quantity, data.unit_price, data.currency, data.total_amount, data.buyer_name, data.shipping_address, data.logistics_provider, data.tracking_number, data.status, data.platform_status, data.order_time, data.shipped_time);

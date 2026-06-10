@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Button, Card, List, message, Typography } from 'antd';
 import OrderTable from '../../components/order/OrderTable';
 import { useOrderStore } from '../../stores/order-store';
+import { IPC } from '../../shared/ipc-channels';
 
 const { Title, Text } = Typography;
 
@@ -12,7 +13,7 @@ const Orders: React.FC = () => {
   const checkMerges = async () => {
     const api = (window as any).electronAPI;
     if (!api) return;
-    const groups = await api.invoke('orders:mergeable');
+    const groups = await api.invoke(IPC.ORDERS_MERGEABLE);
     setMergeGroups(groups || []);
   };
 
@@ -36,7 +37,7 @@ const Orders: React.FC = () => {
                 <Button size="small" type="primary" onClick={async () => {
                   const api = (window as any).electronAPI;
                   if (!api) return;
-                  const result = await api.invoke('orders:merge', g.order_ids);
+                  const result = await api.invoke(IPC.ORDERS_MERGE, g.order_ids);
                   message.success(result.message);
                   loadOrders();
                   checkMerges();

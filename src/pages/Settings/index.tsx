@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Typography, List, Switch, Button, Tag, Modal, Form, Input, message, Space } from 'antd';
 import { useSettingsStore } from '../../stores/settings-store';
+import { usePlatformStore } from '../../stores/platform-store';
 import ImportExcel from '../../components/shared/ImportExcel';
 
 const { Title, Text } = Typography;
@@ -14,8 +15,11 @@ const platformDefaults = [
 ];
 
 const Settings: React.FC = () => {
-  const { platforms, loadPlatforms, saveAuth, toggleSync, syncNow } = useSettingsStore();
+  const { platforms, loadPlatforms, saveAuth, toggleSync, syncNow } = usePlatformStore();
+  const { setSetting } = useSettingsStore();
   const [authModal, setAuthModal] = useState<{ open: boolean; code: string; name: string; fields: string[] }>({ open: false, code: '', name: '', fields: [] });
+  const [backupModalOpen, setBackupModalOpen] = useState(false);
+  const [backupPath, setBackupPath] = useState('');
   const [form] = Form.useForm();
   const [syncing, setSyncing] = useState<string | null>(null);
 
@@ -74,20 +78,34 @@ const Settings: React.FC = () => {
       <Card title="数据备份" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Text>备份目录：</Text>
-          <Button onClick={async () => {
-            const api = (window as any).electronAPI;
-            if (!api) return;
-            const path = prompt('请输入备份目录路径（例如：D:\\Backup）');
-            if (path) {
-              await api.invoke('settings:set', 'backupPath', path);
-              message.success('备份目录已设置');
-            }
-          }}>
+          <Button onClick={() => setBackupModalOpen(true)}>
             设置备份目录
           </Button>
           <Text type="secondary">设置后每日自动备份数据库</Text>
         </div>
       </Card>
+
+      <Modal
+        title="设置备份目录"
+        open={backupModalOpen}
+        onCancel={() => setBackupModalOpen(false)}
+        onOk={async () => {
+          if (!backupPath.trim()) {
+            message.warning('请输入备份目录路径');
+            return;
+          }
+          await setSetting('backupPath', backupPath.trim());
+          message.success('备份目录已设置');
+          setBackupModalOpen(false);
+        }}
+      >
+        <Input
+          placeholder="例如：D:\Backup"
+          value={backupPath}
+          onChange={(e) => setBackupPath(e.target.value)}
+          style={{ marginTop: 8 }}
+        />
+      </Modal>
 
       <Modal
         title={`配置 ${authModal.name} 授权`}
