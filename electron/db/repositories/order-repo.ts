@@ -64,12 +64,34 @@ export const OrderRepo = {
 
   upsert(data: Omit<OrderRow, 'id' | 'synced_at'> & { id?: string }): OrderRow {
     const id = data.id || uuid();
-    getDbSync().prepare(
-      `INSERT INTO "order" (id, platform_id, platform_order_id, product_id, sku, quantity, unit_price, currency, total_amount, buyer_name, shipping_address, logistics_provider, tracking_number, status, platform_status, order_time, shipped_time, synced_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    const db = getDbSync();
+
+    // Preserve amount in original currency before sync normalizes it
+    const existing = db.prepare(
+      'SELECT amount_original, currency_original FROM "order" WHERE platform_id = ? AND platform_order_id = ?'
+    ).get(data.platform_id, data.platform_order_id) as any;
+
+    db.prepare(
+      `INSERT INTO "order" (id, platform_id, platform_order_id, product_id, sku, quantity, unit_price, currency,
+         total_amount, buyer_name, shipping_address, logistics_provider, tracking_number, status,
+         platform_status, order_time, shipped_time,
+         amount_original, currency_original, version, synced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
        ON CONFLICT(platform_id, platform_order_id) DO UPDATE SET
-         status = excluded.status, platform_status = excluded.platform_status, tracking_number = excluded.tracking_number, shipped_time = excluded.shipped_time, synced_at = datetime('now')`
-    ).run(id, data.platform_id, data.platform_order_id, data.product_id, data.sku, data.quantity, data.unit_price, data.currency, data.total_amount, data.buyer_name, data.shipping_address, data.logistics_provider, data.tracking_number, data.status, data.platform_status, data.order_time, data.shipped_time);
+         status = excluded.status,
+         platform_status = excluded.platform_status,
+         tracking_number = excluded.tracking_number,
+         shipped_time = excluded.shipped_time,
+         version = "order".version + 1,
+         synced_at = datetime('now')`
+    ).run(
+      id, data.platform_id, data.platform_order_id, data.product_id, data.sku,
+      data.quantity, data.unit_price, data.currency, data.total_amount,
+      data.buyer_name, data.shipping_address, data.logistics_provider, data.tracking_number,
+      data.status, data.platform_status, data.order_time, data.shipped_time,
+      existing?.amount_original ?? data.total_amount,
+      existing?.currency_original ?? data.currency,
+    );
     return this.getById(id)!;
   },
 
@@ -113,7 +135,7 @@ export const OrderRepo = {
 
   getTodayStats(): { revenue: number; orderCount: number } {
     const row = getDbSync().prepare(
-      `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount FROM "order" WHERE date(synced_at) = date('now')`
+      `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount FROM "order" WHERE date(order_time) = date('now')`
     ).get() as { revenue: number; orderCount: number };
     return row;
   },

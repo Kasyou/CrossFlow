@@ -6,6 +6,7 @@ import { syncAmazonOrders } from './amazon';
 import { syncShopeeOrders } from './shopee';
 import { syncTikTokOrders } from './tiktok';
 import { syncLazadaOrders } from './lazada';
+import { resolveSku, ensureProductPlatformLink } from '../db/matching';
 import { getDbSync } from '../db/connection';
 
 const jobs = new Map<string, cron.ScheduledTask>();
@@ -64,14 +65,30 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
     }
 
     let synced = 0;
+    let matchedCount = 0;
     for (const order of result.orders) {
+      // Resolve platform SKU to local product via product_platform mapping
+      const rawPlatformSku = order.sku; // preserve before overwrite
+      const resolved = resolveSku(code, rawPlatformSku);
+      if (resolved) {
+        order.product_id = resolved.product_id;
+        order.sku = resolved.sku;
+        ensureProductPlatformLink(code, resolved.product_id, rawPlatformSku);
+        matchedCount++;
+      }
       OrderRepo.upsert({ ...order, platform_id: platform.id });
       synced++;
     }
 
+    // Preserve original platform_sku in the message for unmatched items
+    const detail = matchedCount < synced
+      ? ` (${matchedCount}/${synced} matched to local products)`
+      : '';
+
     const status = synced > 0 ? 'success' : 'partial';
-    SyncLogRepo.finish(logId, status, result.message || null, synced);
-    return { status, records: synced, message: result.message || 'OK' };
+    const msg = (result.message || 'OK') + detail;
+    SyncLogRepo.finish(logId, status, msg, synced);
+    return { status, records: synced, message: msg };
   } catch (err: any) {
     SyncLogRepo.finish(logId, 'failed', err.message, 0);
     return { status: 'failed', records: 0, message: err.message };
@@ -92,10 +109,14 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 }
 
 export function getDashboardMetrics() {
-  const today = OrderRepo.getTodayStats();
   const db = getDbSync();
+  const today = db.prepare(
+    `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount
+     FROM "order" WHERE date(order_time) = date('now')`
+  ).get() as { revenue: number; orderCount: number };
   const yesterday = db.prepare(
-    `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount FROM "order" WHERE date(synced_at) = date('now', '-1 day')`
+    `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount
+     FROM "order" WHERE date(order_time) = date('now', '-1 day')`
   ).get() as { revenue: number; orderCount: number };
 
   const skuCount = (db.prepare('SELECT COUNT(*) as count FROM product').get() as { count: number }).count;
