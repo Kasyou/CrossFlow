@@ -1,19 +1,23 @@
-﻿import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import OpenAI from "openai";
 
-const API_KEY = "sk-c7c2dbae281248bb8db91a933a28e265";
+const API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const BASE_URL = "https://api.deepseek.com";
 const MODEL = "deepseek-chat";
 
-let client: OpenAI;
+const hasKey = !!API_KEY;
+
+let client: OpenAI | null = null;
 
 beforeAll(() => {
-  client = new OpenAI({ apiKey: API_KEY, baseURL: BASE_URL });
+  if (hasKey) {
+    client = new OpenAI({ apiKey: API_KEY, baseURL: BASE_URL });
+  }
 });
 
 describe("AI Adapter - DeepSeek live integration", () => {
-  it("translates product name to English", async () => {
-    const res = await client.chat.completions.create({
+  it("translates product name to English", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
@@ -28,8 +32,8 @@ describe("AI Adapter - DeepSeek live integration", () => {
     expect(result.toLowerCase()).toMatch(/bluetooth|earbud|headphone|wireless/);
   }, 30000);
 
-  it("classifies refund reason to correct category", async () => {
-    const res = await client.chat.completions.create({
+  it("classifies refund reason to correct category", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
@@ -44,8 +48,8 @@ describe("AI Adapter - DeepSeek live integration", () => {
     expect(result).toBe("quality");
   }, 30000);
 
-  it("classifies logistics-related refund", async () => {
-    const res = await client.chat.completions.create({
+  it("classifies logistics-related refund", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
@@ -60,8 +64,8 @@ describe("AI Adapter - DeepSeek live integration", () => {
     expect(result).toBe("logistics");
   }, 30000);
 
-  it("generates anomaly alert in Chinese", async () => {
-    const res = await client.chat.completions.create({
+  it("generates anomaly alert in Chinese", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
@@ -73,12 +77,11 @@ describe("AI Adapter - DeepSeek live integration", () => {
     const result = res.choices[0]?.message?.content?.trim() || "";
     console.log("Anomaly alert:", result);
     expect(result.length).toBeGreaterThan(0);
-    // Should contain Chinese characters
-    expect(result).toMatch(/[\u4e00-\u9fff]/);
+    expect(result).toMatch(/[一-鿿]/);
   }, 30000);
 
-  it("generates anomaly alert for order spike", async () => {
-    const res = await client.chat.completions.create({
+  it("generates anomaly alert for order spike", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
@@ -90,11 +93,11 @@ describe("AI Adapter - DeepSeek live integration", () => {
     const result = res.choices[0]?.message?.content?.trim() || "";
     console.log("Spike alert:", result);
     expect(result.length).toBeGreaterThan(0);
-    expect(result).toMatch(/[\u4e00-\u9fff]/);
+    expect(result).toMatch(/[一-鿿]/);
   }, 30000);
 
-  it("handles empty/malformed refund reason gracefully", async () => {
-    const res = await client.chat.completions.create({
+  it("handles empty/malformed refund reason gracefully", { skip: !hasKey }, async () => {
+    const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
         role: "user",
