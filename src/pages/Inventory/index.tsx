@@ -81,15 +81,14 @@ const Inventory: React.FC = () => {
                 return <Tag color={map[v]?.color}>{map[v]?.text || v}</Tag>;
               }},
               { title: '操作', width: 80, render: (_: any, record: any) => (
-                <Button size="small" type="primary" onClick={() => {
+                <Button size="small" type="primary" onClick={async () => {
                   const api = (window as any).electronAPI;
                   if (!api) return;
-                  const wh = warehouses.find((w: any) => w.name === record.warehouse_name);
-                  api.invoke(IPC.INVENTORY_RESTOCK, record.sku, wh?.id || '', record.suggested_restock_qty, '智能建议补货');
+                  await api.invoke(IPC.INVENTORY_RESTOCK, record.product_id, record.warehouse_id, record.suggested_restock_qty, '智能建议补货');
                   message.success(`已添加补货单：${record.sku} x ${record.suggested_restock_qty}`);
-                  loadAll();
-                  loadLowStock();
-                  loadSuggestions();
+                  await loadAll();
+                  await loadLowStock();
+                  await loadSuggestions();
                 }}>一键补货</Button>
               )},
             ]}

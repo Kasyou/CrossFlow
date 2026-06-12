@@ -446,6 +446,15 @@ export function registerIpcHandlers(): void {
     return exportProfitReport(days || 30);
   }));
 
+  // ---- Sync Log ----
+  ipcMain.handle('syncLog:recent', wrapHandler(async () => {
+    return getDbSync().prepare(
+      `SELECT sl.*, p.name as platform_name
+       FROM sync_log sl LEFT JOIN platform p ON sl.platform_id = p.id
+       ORDER BY sl.finished_at DESC LIMIT 10`
+    ).all();
+  }));
+
   // ---- Dashboard ----
   ipcMain.handle(IPC.DASHBOARD_METRICS, wrapHandler(async () => {
     return getDashboardMetrics();

@@ -120,6 +120,7 @@ export const InventoryRepo = {
     return db.prepare(
       `SELECT
         p.sku, p.name as product_name, w.name as warehouse_name, w.type as warehouse_type,
+        i.product_id, i.warehouse_id,
         i.available, i.in_transit, p.safety_stock,
         COALESCE(
           (SELECT CAST(COUNT(*) AS REAL) / 7 FROM "order" o

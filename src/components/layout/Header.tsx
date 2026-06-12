@@ -24,21 +24,8 @@ const Header: React.FC = () => {
       setLoadingLogs(true);
       const api = (window as any).electronAPI;
       if (!api) return;
-      const platforms = await api.invoke('platform:list');
-      const logs: SyncLogEntry[] = [];
-      for (const p of platforms) {
-        if (p.syncEnabled) {
-          logs.push({
-            id: p.id,
-            platform_name: p.name,
-            status: 'success',
-            message: null,
-            records_count: 0,
-            finished_at: new Date().toISOString(),
-          });
-        }
-      }
-      setNotifications(logs);
+      const logs = await api.invoke('syncLog:recent');
+      setNotifications(logs || []);
       setLoadingLogs(false);
     } catch {
       setLoadingLogs(false);
@@ -64,26 +51,28 @@ const Header: React.FC = () => {
         return;
       }
 
-      let successCount = 0;
-      let failCount = 0;
+      let totalRecords = 0;
+      let successPlatforms = 0;
+      let failPlatforms = 0;
 
       for (const p of enabledPlatforms) {
         try {
           const result = await api.invoke('platform:syncNow', p.code);
           if (result.status === 'failed') {
-            failCount++;
+            failPlatforms++;
           } else {
-            successCount += result.records || 0;
+            successPlatforms++;
+            totalRecords += result.records || 0;
           }
         } catch {
-          failCount++;
+          failPlatforms++;
         }
       }
 
-      if (failCount > 0) {
-        message.warning(`同步完成：${successCount} 条，${failCount} 个平台失败`);
+      if (failPlatforms > 0) {
+        message.warning(`同步完成：${successPlatforms}/${enabledPlatforms.length} 个平台成功，共 ${totalRecords} 条新订单，${failPlatforms} 个失败`);
       } else {
-        message.success(`同步完成：共获取 ${successCount} 条订单`);
+        message.success(`${successPlatforms} 个平台同步完成，共 ${totalRecords} 条订单`);
       }
       fetchNotifications();
     } catch {

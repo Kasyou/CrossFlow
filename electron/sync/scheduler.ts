@@ -119,7 +119,13 @@ export function getDashboardMetrics() {
      FROM "order" WHERE date(order_time) = date('now', '-1 day')`
   ).get() as { revenue: number; orderCount: number };
 
-  const skuCount = (db.prepare('SELECT COUNT(*) as count FROM product').get() as { count: number }).count;
+  // Count active SKUs: has inventory or active platform listing
+  const skuCount = (db.prepare(
+    `SELECT COUNT(DISTINCT p.id) as count
+     FROM product p
+     WHERE p.id IN (SELECT product_id FROM inventory WHERE available > 0 OR reserved > 0 OR in_transit > 0)
+        OR p.id IN (SELECT product_id FROM product_platform WHERE status = 'active')`
+  ).get() as { count: number }).count;
 
   const totalAvailable = (db.prepare(
     'SELECT COALESCE(SUM(available), 0) as total FROM inventory'
