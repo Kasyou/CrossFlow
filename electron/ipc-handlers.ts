@@ -34,11 +34,65 @@ export function registerIpcHandlers(): void {
   }));
 
   ipcMain.handle(IPC.ORDERS_UPDATE_STATUS, wrapHandler(async (_e, id, status, trackingNumber) => {
+    const order = OrderRepo.getById(id);
+    if (!order) return { success: false, message: 'Order not found' };
+
     OrderRepo.updateStatus(id, status, trackingNumber);
+
+    // Auto-trigger inventory operations on status change
+    if (status === 'matched' && order.product_id) {
+      // Reserve stock in the default domestic warehouse
+      const defaultWh = getDbSync().prepare(
+        'SELECT id FROM warehouse WHERE is_default = 1 LIMIT 1'
+      ).get() as { id: string } | undefined;
+      if (defaultWh) {
+        try {
+          InventoryRepo.reserve(order.product_id, defaultWh.id, order.quantity, order.id);
+        } catch (e: any) {
+          console.warn(`Failed to reserve inventory for order ${order.id}: ${e.message}`);
+        }
+      }
+    }
+
+    if ((status === 'cancelled' || status === 'refunded') && order.product_id) {
+      const defaultWh = getDbSync().prepare(
+        'SELECT id FROM warehouse WHERE is_default = 1 LIMIT 1'
+      ).get() as { id: string } | undefined;
+      if (defaultWh) {
+        try {
+          InventoryRepo.release(order.product_id, defaultWh.id, order.quantity, order.id);
+        } catch (e: any) {
+          console.warn(`Failed to release inventory for order ${order.id}: ${e.message}`);
+        }
+      }
+    }
+
     return { success: true };
   }));
 
   ipcMain.handle(IPC.ORDERS_BATCH_SHIP, wrapHandler(async (_e, ids) => {
+    for (const id of ids) {
+      const order = OrderRepo.getById(id);
+      if (order && order.status === 'matched') {
+        // Deduct from available/reserved when shipping
+        const defaultWh = getDbSync().prepare(
+          'SELECT id FROM warehouse WHERE is_default = 1 LIMIT 1'
+        ).get() as { id: string } | undefined;
+        if (defaultWh && order.product_id) {
+          try {
+            // Release the reserve first, then let the shipped status reflect actual deduction
+            // The existing UPDATE in updateStatus already handles the status change
+            // Here we just ensure the reserved qty is released on ship
+            const inv = InventoryRepo.getByProductWarehouse(order.product_id, defaultWh.id);
+            if (inv && inv.reserved >= order.quantity) {
+              InventoryRepo.release(order.product_id, defaultWh.id, order.quantity, order.id);
+            }
+          } catch (e: any) {
+            console.warn(`Failed to adjust inventory for shipped order ${order.id}: ${e.message}`);
+          }
+        }
+      }
+    }
     OrderRepo.batchUpdateStatus(ids, 'shipped');
     return { success: true };
   }));
@@ -168,12 +222,24 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.ORDERS_MERGE, wrapHandler(async (_e, orderIds: string[]) => {
     if (orderIds.length < 2) return { success: false, message: 'Need at least 2 orders' };
-    const primary = OrderRepo.getById(orderIds[0]);
+    if (orderIds.length > 20) return { success: false, message: 'Cannot merge more than 20 orders at once' };
+
+    // Secondary validation: verify all orders match on SKU, address, and status
+    const allOrders = orderIds.map(id => OrderRepo.getById(id));
+    const primary = allOrders[0];
     if (!primary) return { success: false, message: 'Primary order not found' };
-    const totalQty = orderIds.reduce((sum, id) => {
-      const o = OrderRepo.getById(id);
-      return sum + (o?.quantity || 0);
-    }, 0);
+
+    for (let i = 1; i < allOrders.length; i++) {
+      const o = allOrders[i];
+      if (!o) return { success: false, message: `Order ${orderIds[i]} not found` };
+      if (o.sku !== primary.sku) return { success: false, message: `SKU mismatch: ${primary.sku} vs ${o.sku}` };
+      if ((o.shipping_address || '') !== (primary.shipping_address || '')) {
+        return { success: false, message: 'Shipping address mismatch — cannot merge orders with different addresses' };
+      }
+      if (o.status !== 'pending') return { success: false, message: `Cannot merge non-pending orders (${o.platform_order_id} is ${o.status})` };
+    }
+
+    const totalQty = allOrders.reduce((sum, o) => sum + (o?.quantity || 0), 0);
     getDbSync().prepare('UPDATE "order" SET quantity = ? WHERE id = ?').run(totalQty, primary.id);
     OrderRepo.batchUpdateStatus(orderIds.slice(1), 'cancelled');
     return { success: true, message: `已合并 ${orderIds.length} 个订单，总数量：${totalQty}` };
@@ -223,10 +289,32 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.DASHBOARD_SKU_PROFIT, wrapHandler(async () => {
     return getDbSync().prepare(
-      `SELECT o.sku, p.name as productName, COUNT(*) as orderCount, COALESCE(SUM(o.total_amount),0) as revenue,
-              COALESCE(SUM(o.total_amount) - COUNT(*) * p.cost_price, 0) as estimatedProfit
-       FROM "order" o JOIN product p ON o.sku = p.sku
-       WHERE o.order_time >= date('now', '-30 days') GROUP BY o.sku ORDER BY estimatedProfit DESC LIMIT 20`
+      `SELECT
+        o.sku,
+        p.name as productName,
+        COUNT(DISTINCT o.id) as orderCount,
+        COALESCE(SUM(o.total_amount), 0) as revenue,
+        COALESCE(SUM(o.quantity * p.cost_price), 0) as purchaseCost,
+        COALESCE(SUM(o.total_amount * fc_comm.rate), 0) as commissionFees,
+        COALESCE(SUM(o.total_amount * fc_pay.rate + fc_pay.fixed_amount), 0) as paymentFees,
+        COALESCE(SUM(oc.amount), 0) as otherCosts,
+        COALESCE(
+          SUM(o.total_amount)
+          - SUM(o.quantity * p.cost_price)
+          - SUM(o.total_amount * COALESCE(fc_comm.rate, 0))
+          - SUM(o.total_amount * COALESCE(fc_pay.rate, 0) + COALESCE(fc_pay.fixed_amount, 0))
+          - COALESCE(SUM(oc.amount), 0),
+          0
+        ) as estimatedProfit
+       FROM "order" o
+       JOIN product p ON o.sku = p.sku
+       LEFT JOIN fee_config fc_comm ON o.platform_id = fc_comm.platform_id AND fc_comm.fee_type = 'commission'
+       LEFT JOIN fee_config fc_pay ON o.platform_id = fc_pay.platform_id AND fc_pay.fee_type = 'payment'
+       LEFT JOIN order_cost oc ON o.id = oc.order_id
+       WHERE o.order_time >= date('now', '-30 days')
+       GROUP BY o.sku
+       ORDER BY estimatedProfit DESC
+       LIMIT 20`
     ).all();
   }));
 

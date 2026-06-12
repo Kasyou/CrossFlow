@@ -3,6 +3,18 @@ import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 import migration001 from './migrations/001_initial';
+import migration002 from './migrations/002_fee_tables';
+
+interface Migration {
+  version: number;
+  name: string;
+  sql: string;
+}
+
+const migrations: Migration[] = [
+  { version: 1, name: 'initial_schema', sql: migration001 },
+  { version: 2, name: 'fee_tables', sql: migration002 },
+];
 
 let SQL: SqlJsStatic | null = null;
 let db: SqlJsDatabase | null = null;
@@ -44,10 +56,34 @@ function scheduleSave(): void {
   saveTimer = setTimeout(saveDb, 5000);
 }
 
+function getAppliedVersions(database: SqlJsDatabase): Set<number> {
+  database.run(`CREATE TABLE IF NOT EXISTS _migrations (
+    version INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  const results: number[] = [];
+  database.exec('SELECT version FROM _migrations ORDER BY version');
+  // sql.js exec returns array of { columns, values }
+  const stmt = database.prepare('SELECT version FROM _migrations ORDER BY version');
+  while (stmt.step()) {
+    results.push(stmt.getAsObject().version as number);
+  }
+  stmt.free();
+  return new Set(results);
+}
+
 export async function runMigrations(): Promise<void> {
   const database = await getDb();
-  database.run(migration001);
-  saveDb();
+  const applied = getAppliedVersions(database);
+
+  for (const m of migrations) {
+    if (applied.has(m.version)) continue;
+    console.log(`Running migration ${m.version}: ${m.name}`);
+    database.run(m.sql);
+    database.run('INSERT INTO _migrations (version, name) VALUES (?, ?)', [m.version, m.name]);
+    saveDb();
+  }
 }
 
 export function closeDb(): void {

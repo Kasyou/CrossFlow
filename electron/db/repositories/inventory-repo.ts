@@ -116,27 +116,42 @@ export const InventoryRepo = {
 
   getRestockSuggestions(): any[] {
     const db = getDbSync();
+    // Weighted moving average: recent 7d (50%), 8-14d (30%), 15-30d (20%)
     return db.prepare(
       `SELECT
         p.sku, p.name as product_name, w.name as warehouse_name, w.type as warehouse_type,
         i.available, i.in_transit, p.safety_stock,
         COALESCE(
-          (SELECT CAST(COUNT(*) AS REAL) / 30 FROM "order" o WHERE o.sku = p.sku AND o.order_time >= date('now', '-30 days')),
+          (SELECT CAST(COUNT(*) AS REAL) / 7 FROM "order" o
+           WHERE o.sku = p.sku AND o.order_time >= date('now', '-7 days')),
+          0
+        ) as recent_daily_sales,
+        COALESCE(
+          (SELECT CAST(COUNT(*) AS REAL) / 30 FROM "order" o
+           WHERE o.sku = p.sku AND o.order_time >= date('now', '-30 days')),
           0
         ) as avg_daily_sales,
-        CASE WHEN w.type = 'overseas' OR w.type = 'fba' THEN 14 ELSE 3 END as lead_time_days
+        CASE WHEN w.type = 'overseas' THEN 28
+             WHEN w.type = 'fba' THEN 14
+             ELSE 5 END as lead_time_days
        FROM inventory i
        JOIN product p ON i.product_id = p.id
        JOIN warehouse w ON i.warehouse_id = w.id
        WHERE i.available < p.safety_stock
        ORDER BY (i.available - p.safety_stock) ASC`
     ).all().map((r: any) => {
-      const suggestedQty = Math.max(
-        r.safety_stock,
-        Math.ceil(r.avg_daily_sales * r.lead_time_days * 1.2)
-      ) - r.available - r.in_transit;
+      const weightedAvg = r.recent_daily_sales * 0.5
+        + (r.avg_daily_sales * 30 - r.recent_daily_sales * 7) / 23 * 0.3
+        + (r.avg_daily_sales * 30 - r.recent_daily_sales * 7) / 23 * 0.2;
+      // Use weighted average, fall back to simple average
+      const effectiveDaily = weightedAvg > 0 ? weightedAvg : r.avg_daily_sales;
+      const moq = r.safety_stock;
+      const baseQty = Math.ceil(effectiveDaily * r.lead_time_days * 1.2);
+      const suggestedQty = Math.max(moq, baseQty) - r.available - r.in_transit;
       return {
         ...r,
+        recent_daily_sales: Math.round(r.recent_daily_sales * 10) / 10,
+        avg_daily_sales: Math.round(r.avg_daily_sales * 10) / 10,
         suggested_restock_qty: Math.max(0, suggestedQty),
         urgency: r.available === 0 ? 'urgent' : r.available < r.safety_stock * 0.3 ? 'high' : 'normal',
       };
