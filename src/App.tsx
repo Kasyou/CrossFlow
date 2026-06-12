@@ -10,6 +10,9 @@ import Products from './pages/Products';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Onboarding from './pages/Onboarding';
+import Procurement from './pages/Procurement';
+import Reviews from './pages/Reviews';
+import Freight from './pages/Freight';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const App: React.FC = () => {
@@ -48,6 +51,9 @@ const App: React.FC = () => {
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/products" element={<Products />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/procurement" element={<Procurement />} />
+                    <Route path="/reviews" element={<Reviews />} />
+                    <Route path="/freight" element={<Freight />} />
                   </Routes>
                 </ErrorBoundary>
               </main>

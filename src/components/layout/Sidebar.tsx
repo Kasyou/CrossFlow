@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
-import { DashboardOutlined, ShoppingCartOutlined, InboxOutlined, SettingOutlined, CompassOutlined, TagOutlined } from '@ant-design/icons';
+import { DashboardOutlined, ShoppingCartOutlined, InboxOutlined, SettingOutlined, CompassOutlined, TagOutlined, ShopOutlined, StarOutlined, GlobalOutlined } from '@ant-design/icons';
 
 const { Sider } = Layout;
 
@@ -11,6 +11,9 @@ const menuItems = [
   { key: '/orders', icon: <ShoppingCartOutlined />, label: '订单管理' },
   { key: '/inventory', icon: <InboxOutlined />, label: '库存管理' },
   { key: '/products', icon: <TagOutlined />, label: '商品管理' },
+  { key: '/procurement', icon: <ShopOutlined />, label: '采购管理' },
+  { key: '/freight', icon: <GlobalOutlined />, label: '货运管理' },
+  { key: '/reviews', icon: <StarOutlined />, label: '评价管理' },
   { key: '/settings', icon: <SettingOutlined />, label: '设置' },
 ];
 

@@ -355,6 +355,25 @@ export function registerIpcHandlers(): void {
     return { success: true };
   }));
 
+  // ---- Fee Config ----
+  ipcMain.handle('feeConfig:list', wrapHandler(async () => {
+    return getDbSync().prepare(
+      `SELECT fc.*, p.name as platform_name FROM fee_config fc LEFT JOIN platform p ON fc.platform_id = p.id`
+    ).all();
+  }));
+
+  ipcMain.handle('feeConfig:save', wrapHandler(async (_e, data) => {
+    const { v4: uuid } = require('uuid');
+    const db = getDbSync();
+    const existing = db.prepare('SELECT id FROM fee_config WHERE platform_id = ? AND fee_type = ?').get(data.platform_id, data.fee_type) as any;
+    if (existing) {
+      db.prepare('UPDATE fee_config SET rate = ?, fixed_amount = ? WHERE id = ?').run(data.rate || 0, data.fixed_amount || 0, existing.id);
+    } else {
+      db.prepare('INSERT INTO fee_config (id, platform_id, fee_type, rate, fixed_amount) VALUES (?, ?, ?, ?, ?)').run(uuid(), data.platform_id, data.fee_type, data.rate || 0, data.fixed_amount || 0);
+    }
+    return { success: true };
+  }));
+
   // ---- Finance ----
   ipcMain.handle('finance:exchangeRate', wrapHandler(async () => {
     const { syncExchangeRates, convertCurrency } = require('./sync/exchange-rate');

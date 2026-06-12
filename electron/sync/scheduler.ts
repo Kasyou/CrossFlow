@@ -16,6 +16,14 @@ export function startAllSyncJobs(): void {
   for (const p of platforms) {
     if (p.sync_enabled) schedulePlatform(p.code);
   }
+  // Daily exchange rate sync
+  const exchangeJob = cron.schedule('0 6 * * *', async () => {
+    try {
+      const { syncExchangeRates } = require('./exchange-rate');
+      await syncExchangeRates();
+    } catch { /* silent */ }
+  });
+  jobs.set('__exchange_rates__', exchangeJob);
 }
 
 export function stopAllSyncJobs(): void {
@@ -67,8 +75,7 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
     let synced = 0;
     let matchedCount = 0;
     for (const order of result.orders) {
-      // Resolve platform SKU to local product via product_platform mapping
-      const rawPlatformSku = order.sku; // preserve before overwrite
+      const rawPlatformSku = order.sku;
       const resolved = resolveSku(code, rawPlatformSku);
       if (resolved) {
         order.product_id = resolved.product_id;
@@ -76,7 +83,17 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
         ensureProductPlatformLink(code, resolved.product_id, rawPlatformSku);
         matchedCount++;
       }
-      OrderRepo.upsert({ ...order, platform_id: platform.id });
+      const saved = OrderRepo.upsert({ ...order, platform_id: platform.id });
+
+      // Write order_item if not already present
+      const db = getDbSync();
+      const existingItem = db.prepare('SELECT id FROM order_item WHERE order_id = ? AND sku = ?').get(saved.id, saved.sku) as any;
+      if (!existingItem) {
+        const { v4: uuid } = require('uuid');
+        db.prepare(
+          'INSERT INTO order_item (id, order_id, product_id, sku, platform_sku, quantity, unit_price, total_price, item_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)'
+        ).run(uuid(), saved.id, saved.product_id, saved.sku, rawPlatformSku, saved.quantity, saved.unit_price, saved.total_amount);
+      }
       synced++;
     }
 
