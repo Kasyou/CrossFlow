@@ -52,7 +52,7 @@ export async function syncAmazonOrders(platform: PlatformRow): Promise<{ orders:
   }
 
   const accessToken = await getAccessToken(auth);
-  const orders = await fetchOrders(accessToken, auth.region || 'na', accessToken);
+  const orders = await fetchOrders(accessToken, auth.region || 'na', auth.marketplaceId);
 
   return { orders };
 }
@@ -73,12 +73,38 @@ async function getAccessToken(auth: { refreshToken: string; clientId: string; cl
   return data.access_token;
 }
 
-async function fetchOrders(accessToken: string, region: string, _authToken: string): Promise<AmazonOrder[]> {
-  const baseUrl = region === 'eu' ? 'https://sellingpartnerapi-eu.amazon.com' : 'https://sellingpartnerapi-na.amazon.com';
+const SP_API_ENDPOINTS: Record<string, string> = {
+  na: 'https://sellingpartnerapi-na.amazon.com',
+  eu: 'https://sellingpartnerapi-eu.amazon.com',
+  fe: 'https://sellingpartnerapi-fe.amazon.com',
+};
+
+const MARKETPLACE_IDS: Record<string, string> = {
+  na: 'ATVPDKIKX0DER',       // US
+  ca: 'A2EUQ1WTGCTBG2',      // Canada
+  mx: 'A1AM78C64UM0Y8',      // Mexico
+  uk: 'A1F83G8C2ARO7P',      // UK
+  de: 'A1PA6795UKMFR9',      // Germany
+  fr: 'A13V1IB3VIYZZH',      // France
+  it: 'APJ6JRA9NG5V4',       // Italy
+  es: 'A1RKKUPIHCS9HS',      // Spain
+  jp: 'A1VC38T7YXB528',      // Japan
+  au: 'A39IBJ37TRP1C6',      // Australia
+};
+
+function getSpApiEndpoint(region: string): string {
+  if (region === 'na' || region === 'ca' || region === 'mx') return SP_API_ENDPOINTS.na;
+  if (region === 'jp' || region === 'au') return SP_API_ENDPOINTS.fe;
+  return SP_API_ENDPOINTS.eu;
+}
+
+async function fetchOrders(accessToken: string, region: string, marketplaceId?: string): Promise<AmazonOrder[]> {
+  const baseUrl = getSpApiEndpoint(region);
+  const mktId = marketplaceId || MARKETPLACE_IDS[region] || MARKETPLACE_IDS.na;
   const createdAfter = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   const res = await rateLimitedFetch(
-    `${baseUrl}/orders/v0/orders?MarketplaceIds=ATVPDKIKX0DER&CreatedAfter=${createdAfter}&OrderStatuses=Unshipped&OrderStatuses=PartiallyShipped`,
+    `${baseUrl}/orders/v0/orders?MarketplaceIds=${mktId}&CreatedAfter=${createdAfter}&OrderStatuses=Unshipped&OrderStatuses=PartiallyShipped`,
     { headers: { 'x-amz-access-token': accessToken } },
   );
   const data = await res.json() as any;

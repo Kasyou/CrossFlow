@@ -247,8 +247,14 @@ export function registerIpcHandlers(): void {
 
   // ---- Logistics Tracking ----
   ipcMain.handle(IPC.TRACKING_CHECK, wrapHandler(async () => {
-    const { checkAllTracking } = require('./sync/tracking');
-    return checkAllTracking();
+    // Try real tracking API first, fall back to warehouse-type heuristic
+    try {
+      const { checkAllTrackingReal } = require('./sync/tracking-real');
+      return await checkAllTrackingReal();
+    } catch {
+      const { checkAllTracking } = require('./sync/tracking');
+      return checkAllTracking();
+    }
   }));
 
   // ---- AI Translation ----
@@ -261,6 +267,43 @@ export function registerIpcHandlers(): void {
     const adapter = getAiAdapter({ provider, apiKey });
     if (!adapter) return `[AI未配置] ${text}`;
     return await adapter.translate(text);
+  }));
+
+  // ---- Finance ----
+  ipcMain.handle('finance:exchangeRate', wrapHandler(async () => {
+    const { syncExchangeRates, convertCurrency } = require('./sync/exchange-rate');
+    const result = await syncExchangeRates();
+    return result;
+  }));
+
+  ipcMain.handle('finance:summary', wrapHandler(async () => {
+    const db = getDbSync();
+    const revenue = db.prepare(
+      `SELECT o.platform_id as platformId, p.name as platformName,
+              COALESCE(SUM(o.total_amount), 0) as totalRevenue,
+              COUNT(DISTINCT o.id) as orderCount,
+              o.currency
+       FROM "order" o
+       JOIN platform p ON o.platform_id = p.id
+       WHERE o.order_time >= date('now', '-30 days')
+       GROUP BY o.platform_id`
+    ).all() as any[];
+
+    const totalFees = db.prepare(
+      `SELECT pf.platform_id, COALESCE(SUM(pf.amount), 0) as total
+       FROM platform_fee pf
+       WHERE pf.recorded_at >= date('now', '-30 days')
+       GROUP BY pf.platform_id`
+    ).all() as any[];
+
+    const feeMap: Record<string, number> = {};
+    totalFees.forEach((f: any) => { feeMap[f.platform_id] = f.total; });
+
+    return revenue.map((r: any) => ({
+      ...r,
+      totalFees: feeMap[r.platformId] || 0,
+      netRevenue: r.totalRevenue - (feeMap[r.platformId] || 0),
+    }));
   }));
 
   // ---- Dashboard ----

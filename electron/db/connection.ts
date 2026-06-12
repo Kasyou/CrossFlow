@@ -4,6 +4,7 @@ import fs from 'fs';
 import { app } from 'electron';
 import migration001 from './migrations/001_initial';
 import migration002 from './migrations/002_fee_tables';
+import migration003 from './migrations/003_finance_tables';
 
 interface Migration {
   version: number;
@@ -14,6 +15,7 @@ interface Migration {
 const migrations: Migration[] = [
   { version: 1, name: 'initial_schema', sql: migration001 },
   { version: 2, name: 'fee_tables', sql: migration002 },
+  { version: 3, name: 'finance_tables', sql: migration003 },
 ];
 
 let SQL: SqlJsStatic | null = null;

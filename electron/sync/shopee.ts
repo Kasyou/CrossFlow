@@ -47,7 +47,8 @@ export async function syncShopeeOrders(platform: PlatformRow): Promise<{ orders:
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const host = 'https://partner.shopeemobile.com';
+  const site = auth.site || 'sg';
+  const host = getShopeeHost(site);
   const baseParams: Record<string, string> = {
     partner_id: String(auth.partnerId),
     timestamp: String(timestamp),
@@ -126,6 +127,22 @@ async function fetchOrderDetail(
     console.warn(`Error fetching detail for order ${orderSn}: ${err.message}`);
     return [];
   }
+}
+
+const SHOPEE_HOSTS: Record<string, string> = {
+  sg: 'https://partner.shopeemobile.com',
+  my: 'https://partner.shopeemobile.com.my',
+  th: 'https://partner.shopeemobile.co.th',
+  tw: 'https://partner.shopeemobile.com',
+  id: 'https://partner.shopeemobile.co.id',
+  vn: 'https://partner.shopeemobile.vn',
+  ph: 'https://partner.shopeemobile.ph',
+  br: 'https://partner.shopeemobile.com.br',
+  mx: 'https://partner.shopeemobile.mx',
+};
+
+function getShopeeHost(site: string): string {
+  return SHOPEE_HOSTS[site] || SHOPEE_HOSTS.sg;
 }
 
 function mapShopeeStatus(status: string): string {
