@@ -5,6 +5,8 @@ import { app } from 'electron';
 import migration001 from './migrations/001_initial';
 import migration002 from './migrations/002_fee_tables';
 import migration003 from './migrations/003_finance_tables';
+import migration004 from './migrations/004_procurement';
+import migration005 from './migrations/005_reviews';
 
 interface Migration {
   version: number;
@@ -16,6 +18,8 @@ const migrations: Migration[] = [
   { version: 1, name: 'initial_schema', sql: migration001 },
   { version: 2, name: 'fee_tables', sql: migration002 },
   { version: 3, name: 'finance_tables', sql: migration003 },
+  { version: 4, name: 'procurement', sql: migration004 },
+  { version: 5, name: 'reviews', sql: migration005 },
 ];
 
 let SQL: SqlJsStatic | null = null;

@@ -269,6 +269,91 @@ export function registerIpcHandlers(): void {
     return await adapter.translate(text);
   }));
 
+  ipcMain.handle('ai:optimizeListing', wrapHandler(async (_e, title, features) => {
+    const store = getStore();
+    const apiKey = store.get('aiApiKey', '');
+    if (!apiKey) return '[请在设置中配置AI API Key]';
+    const { getAiAdapter } = require('./ai/adapter');
+    const adapter = getAiAdapter({ provider: store.get('aiProvider', 'deepseek'), apiKey });
+    if (!adapter) return '[AI未配置]';
+    const prompt = `Optimize this e-commerce product listing for Amazon/Shopee:\nTitle: ${title}\nFeatures: ${features}\n\nProvide:\n1. Optimized title (SEO-friendly, under 200 chars)\n2. 5 bullet points highlighting key features\n3. Suggested search terms\n\nResponse in the same language as the input:`;
+    return await adapter.translate(prompt);
+  }));
+
+  ipcMain.handle('ai:customerReply', wrapHandler(async (_e, buyerMessage, orderContext) => {
+    const store = getStore();
+    const apiKey = store.get('aiApiKey', '');
+    if (!apiKey) return '[请在设置中配置AI API Key]';
+    const { getAiAdapter } = require('./ai/adapter');
+    const adapter = getAiAdapter({ provider: store.get('aiProvider', 'deepseek'), apiKey });
+    if (!adapter) return '[AI未配置]';
+    const prompt = `You are a customer service agent for a cross-border e-commerce store. Write a polite, professional reply to the buyer's message.\n\nOrder context: ${orderContext}\nBuyer message: ${buyerMessage}\n\nReply (keep it concise, 2-3 sentences, in the same language as the buyer's message):`;
+    return await adapter.translate(prompt);
+  }));
+
+  // ---- Supplier ----
+  ipcMain.handle('supplier:list', wrapHandler(async () => {
+    const { SupplierRepo } = require('./db/repositories/supplier-repo');
+    return SupplierRepo.getAll();
+  }));
+
+  ipcMain.handle('supplier:create', wrapHandler(async (_e, data) => {
+    const { SupplierRepo } = require('./db/repositories/supplier-repo');
+    return SupplierRepo.create(data);
+  }));
+
+  ipcMain.handle('supplier:update', wrapHandler(async (_e, id, fields) => {
+    const { SupplierRepo } = require('./db/repositories/supplier-repo');
+    SupplierRepo.update(id, fields);
+    return { success: true };
+  }));
+
+  ipcMain.handle('supplier:delete', wrapHandler(async (_e, id) => {
+    const { SupplierRepo } = require('./db/repositories/supplier-repo');
+    SupplierRepo.delete(id);
+    return { success: true };
+  }));
+
+  // ---- Purchase Order ----
+  ipcMain.handle('po:list', wrapHandler(async () => {
+    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
+    return PurchaseOrderRepo.getAll();
+  }));
+
+  ipcMain.handle('po:create', wrapHandler(async (_e, supplierId, items) => {
+    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
+    return PurchaseOrderRepo.create(supplierId, items);
+  }));
+
+  ipcMain.handle('po:updateStatus', wrapHandler(async (_e, id, status) => {
+    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
+    PurchaseOrderRepo.updateStatus(id, status);
+    return { success: true };
+  }));
+
+  ipcMain.handle('po:delete', wrapHandler(async (_e, id) => {
+    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
+    PurchaseOrderRepo.delete(id);
+    return { success: true };
+  }));
+
+  // ---- Reviews ----
+  ipcMain.handle('review:list', wrapHandler(async (_e, filter) => {
+    const { ReviewRepo } = require('./db/repositories/review-repo');
+    return ReviewRepo.getAll(filter || {});
+  }));
+
+  ipcMain.handle('review:alerts', wrapHandler(async () => {
+    const { ReviewRepo } = require('./db/repositories/review-repo');
+    return ReviewRepo.getNegativeAlerts();
+  }));
+
+  ipcMain.handle('review:acknowledge', wrapHandler(async (_e, alertId) => {
+    const { ReviewRepo } = require('./db/repositories/review-repo');
+    ReviewRepo.acknowledgeAlert(alertId);
+    return { success: true };
+  }));
+
   // ---- Finance ----
   ipcMain.handle('finance:exchangeRate', wrapHandler(async () => {
     const { syncExchangeRates, convertCurrency } = require('./sync/exchange-rate');

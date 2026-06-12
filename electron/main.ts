@@ -43,6 +43,14 @@ app.whenReady().then(async () => {
   createWindow();
   createTray(mainWindow!);
 
+  // Apply auto-launch setting
+  try {
+    const { getStore } = require('./store');
+    const store = getStore();
+    const autoLaunch = store.get('autoLaunch', false);
+    app.setLoginItemSettings({ openAtLogin: autoLaunch as boolean });
+  } catch { /* settings not yet available */ }
+
   mainWindow!.on('close', (event) => {
     event.preventDefault();
     mainWindow!.hide();
