@@ -176,7 +176,7 @@ describe("syncTikTokOrders", () => {
   it("returns empty with message", async () => {
     const result = await syncTikTokOrders(MOCK_PLATFORM as any);
     expect(result.orders).toEqual([]);
-    expect(result.message).toContain("no public API");
+    expect(result.message).toContain("TikTok Shop requires");
   });
 });
 

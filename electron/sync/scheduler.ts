@@ -5,6 +5,7 @@ import { OrderRepo } from '../db/repositories/order-repo';
 import { syncAmazonOrders } from './amazon';
 import { syncShopeeOrders } from './shopee';
 import { syncTikTokOrders } from './tiktok';
+import { syncLazadaOrders } from './lazada';
 import { getDbSync } from '../db/connection';
 
 const jobs = new Map<string, cron.ScheduledTask>();
@@ -58,6 +59,7 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
       case 'amazon': result = await withRetry(() => syncAmazonOrders(platform)); break;
       case 'shopee': result = await withRetry(() => syncShopeeOrders(platform)); break;
       case 'tiktok': result = await withRetry(() => syncTikTokOrders(platform)); break;
+      case 'lazada': result = await withRetry(() => syncLazadaOrders(platform)); break;
       default: result = { orders: [], message: 'No API sync for this platform' };
     }
 

@@ -7,11 +7,11 @@ import ImportExcel from '../../components/shared/ImportExcel';
 const { Title, Text } = Typography;
 
 const platformDefaults = [
-  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region'] },
-  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId'] },
-  { code: 'tiktok', name: 'TikTok Shop', fields: [] },
+  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region', 'marketplaceId'] },
+  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId', 'site'] },
+  { code: 'tiktok', name: 'TikTok Shop', fields: ['accessToken', 'shopCipher', 'cookies', 'site'] },
   { code: 'temu', name: 'Temu', fields: [] },
-  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken'] },
+  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken', 'site'] },
 ];
 
 const Settings: React.FC = () => {
