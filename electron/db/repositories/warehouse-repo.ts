@@ -1,4 +1,5 @@
 import { getDbSync } from '../connection';
+import { buildSetClauses, WAREHOUSE_COLUMNS } from '../safe-columns';
 import { v4 as uuid } from 'uuid';
 
 export interface WarehouseRow {
@@ -24,14 +25,11 @@ export const WarehouseRepo = {
     return this.getById(id)!;
   },
 
-  update(id: string, fields: Partial<Pick<WarehouseRow, 'name' | 'country'>>): void {
-    const sets: string[] = [];
-    const vals: unknown[] = [];
-    if (fields.name !== undefined) { sets.push('name = ?'); vals.push(fields.name); }
-    if (fields.country !== undefined) { sets.push('country = ?'); vals.push(fields.country); }
-    if (sets.length === 0) return;
-    vals.push(id);
-    getDbSync().prepare(`UPDATE warehouse SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  update(id: string, fields: Record<string, unknown>): void {
+    const { clauses, values } = buildSetClauses(fields, WAREHOUSE_COLUMNS);
+    if (clauses.length === 0) return;
+    values.push(id);
+    getDbSync().prepare(`UPDATE warehouse SET ${clauses.join(', ')} WHERE id = ?`).run(...values);
   },
 
   setDefault(id: string): void {

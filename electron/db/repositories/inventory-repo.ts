@@ -102,6 +102,10 @@ export const InventoryRepo = {
 
   receiveRestock(productId: string, warehouseId: string, quantity: number): void {
     const inv = this.ensure(productId, warehouseId);
+    if (quantity <= 0) throw new Error('Receive quantity must be positive');
+    if (quantity > inv.in_transit) {
+      throw new Error(`Cannot receive ${quantity}, only ${inv.in_transit} in transit`);
+    }
     const db = getDbSync();
     const tx = db.transaction(() => {
       const newAvailable = inv.available + quantity;

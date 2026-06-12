@@ -10,6 +10,8 @@ const InventoryTable: React.FC = () => {
   const { items, loading, restock, receiveRestock } = useInventoryStore();
   const [restockModal, setRestockModal] = useState<{ open: boolean; item?: InventoryItem }>({ open: false });
   const [restockQty, setRestockQty] = useState(0);
+  const [receiveModal, setReceiveModal] = useState<{ open: boolean; item?: InventoryItem }>({ open: false });
+  const [receiveQty, setReceiveQty] = useState(0);
   const [logDrawer, setLogDrawer] = useState<{ open: boolean; productId: string; sku: string }>({ open: false, productId: '', sku: '' });
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -61,7 +63,7 @@ const InventoryTable: React.FC = () => {
           </Button>
           <Button size="small" onClick={() => { fetchLogs(record.product_id); setLogDrawer({ open: true, productId: record.product_id, sku: record.sku }); }}>日志</Button>
           <Button size="small" onClick={() => { setRestockModal({ open: true, item: record }); setRestockQty(0); }}>补货</Button>
-          <Button size="small" onClick={() => receiveRestock(record.product_id, record.warehouse_id, record.in_transit)} disabled={record.in_transit <= 0}>到仓</Button>
+          <Button size="small" onClick={() => { setReceiveModal({ open: true, item: record }); setReceiveQty(record.in_transit); }} disabled={record.in_transit <= 0}>到仓</Button>
         </Space>
       ),
     },
@@ -84,6 +86,26 @@ const InventoryTable: React.FC = () => {
         <p>SKU: {restockModal.item?.sku} — {restockModal.item?.product_name}</p>
         <p>仓库: {restockModal.item?.warehouse_name}</p>
         <InputNumber min={1} value={restockQty} onChange={(v) => setRestockQty(v || 0)} placeholder="补货数量" style={{ width: '100%' }} />
+      </Modal>
+      <Modal
+        title="确认到仓"
+        open={receiveModal.open}
+        onCancel={() => setReceiveModal({ open: false })}
+        onOk={async () => {
+          if (receiveModal.item && receiveQty > 0) {
+            try {
+              await receiveRestock(receiveModal.item.product_id, receiveModal.item.warehouse_id, receiveQty);
+              message.success(`已确认收货：${receiveModal.item.sku} x ${receiveQty}`);
+              setReceiveModal({ open: false });
+            } catch (err: any) {
+              message.error(err.message);
+            }
+          }
+        }}
+      >
+        <p>SKU: {receiveModal.item?.sku} — {receiveModal.item?.product_name}</p>
+        <p>仓库: {receiveModal.item?.warehouse_name} | 在途: {receiveModal.item?.in_transit} 件</p>
+        <InputNumber min={1} max={receiveModal.item?.in_transit || 0} value={receiveQty} onChange={(v) => setReceiveQty(v || 0)} placeholder="本次到货数量" style={{ width: '100%' }} />
       </Modal>
       <Drawer
         title={`库存变动日志 — ${logDrawer.sku}`}

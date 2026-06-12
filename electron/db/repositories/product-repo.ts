@@ -1,4 +1,5 @@
 import { getDbSync } from '../connection';
+import { buildSetClauses, PRODUCT_COLUMNS } from '../safe-columns';
 import { v4 as uuid } from 'uuid';
 
 export interface ProductRow {
@@ -36,15 +37,11 @@ export const ProductRepo = {
     return this.getById(id)!;
   },
 
-  update(sku: string, fields: Partial<Pick<ProductRow, 'name' | 'name_en' | 'category' | 'cost_price' | 'weight_kg' | 'safety_stock'>>): void {
-    const sets: string[] = [];
-    const vals: unknown[] = [];
-    for (const [key, val] of Object.entries(fields)) {
-      if (val !== undefined) { sets.push(`${key} = ?`); vals.push(val); }
-    }
-    if (sets.length === 0) return;
-    vals.push(sku);
-    getDbSync().prepare(`UPDATE product SET ${sets.join(', ')} WHERE sku = ?`).run(...vals);
+  update(sku: string, fields: Record<string, unknown>): void {
+    const { clauses, values } = buildSetClauses(fields, PRODUCT_COLUMNS);
+    if (clauses.length === 0) return;
+    values.push(sku);
+    getDbSync().prepare(`UPDATE product SET ${clauses.join(', ')} WHERE sku = ?`).run(...values);
   },
 
   deleteBySku(sku: string): void {

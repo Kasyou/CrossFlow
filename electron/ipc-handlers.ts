@@ -7,6 +7,7 @@ import { ProductRepo } from './db/repositories/product-repo';
 import { PlatformRepo } from './db/repositories/platform-repo';
 import { getDbSync } from './db/connection';
 import { getStore } from './store';
+import { getSecureSetting, setSecureSetting } from './secrets';
 import { runManualSync } from './sync/scheduler';
 import { getDashboardMetrics } from './sync/scheduler';
 import { importTemuExcel } from './sync/temu';
@@ -261,7 +262,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.AI_TRANSLATE, wrapHandler(async (_e, text) => {
     const store = getStore();
     const provider = store.get('aiProvider', 'deepseek');
-    const apiKey = store.get('aiApiKey', '');
+    const apiKey = getSecureSetting('aiApiKey') || '';
     if (!apiKey) return `[请在设置中配置AI API Key] ${text}`;
     const { getAiAdapter } = require('./ai/adapter');
     const adapter = getAiAdapter({ provider, apiKey });
@@ -271,7 +272,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('ai:optimizeListing', wrapHandler(async (_e, title, features) => {
     const store = getStore();
-    const apiKey = store.get('aiApiKey', '');
+    const apiKey = getSecureSetting('aiApiKey') || '';
     if (!apiKey) return '[请在设置中配置AI API Key]';
     const { getAiAdapter } = require('./ai/adapter');
     const adapter = getAiAdapter({ provider: store.get('aiProvider', 'deepseek'), apiKey });
@@ -282,7 +283,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('ai:customerReply', wrapHandler(async (_e, buyerMessage, orderContext) => {
     const store = getStore();
-    const apiKey = store.get('aiApiKey', '');
+    const apiKey = getSecureSetting('aiApiKey') || '';
     if (!apiKey) return '[请在设置中配置AI API Key]';
     const { getAiAdapter } = require('./ai/adapter');
     const adapter = getAiAdapter({ provider: store.get('aiProvider', 'deepseek'), apiKey });
@@ -518,14 +519,20 @@ export function registerIpcHandlers(): void {
       autoLaunch: store.get('autoLaunch', false),
       minimizeToTray: store.get('minimizeToTray', true),
       aiProvider: store.get('aiProvider', 'deepseek'),
-      aiApiKey: store.get('aiApiKey', ''),
+      aiApiKey: getSecureSetting('aiApiKey') || '',
+      trackingApiKey: getSecureSetting('trackingApiKey') || '',
       backupPath: store.get('backupPath', ''),
     };
   }));
 
   ipcMain.handle(IPC.SETTINGS_SET, wrapHandler(async (_e, key, value) => {
-    const store = getStore();
-    store.set(key, value);
+    // Secure keys go to safeStorage; plain keys go to electron-store
+    if (key === 'aiApiKey' || key === 'trackingApiKey') {
+      setSecureSetting(key, String(value));
+    } else {
+      const store = getStore();
+      store.set(key, value);
+    }
     return { success: true };
   }));
 }

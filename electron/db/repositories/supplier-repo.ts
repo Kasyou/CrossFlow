@@ -1,4 +1,5 @@
 import { getDbSync } from '../connection';
+import { buildSetClauses, SUPPLIER_COLUMNS } from '../safe-columns';
 import { v4 as uuid } from 'uuid';
 
 export interface SupplierRow {
@@ -32,15 +33,11 @@ export const SupplierRepo = {
     return this.getById(id)!;
   },
 
-  update(id: string, fields: Partial<Omit<SupplierRow, 'id' | 'created_at'>>): void {
-    const sets: string[] = [];
-    const vals: unknown[] = [];
-    for (const [key, val] of Object.entries(fields)) {
-      if (val !== undefined) { sets.push(`${key} = ?`); vals.push(val); }
-    }
-    if (sets.length === 0) return;
-    vals.push(id);
-    getDbSync().prepare(`UPDATE supplier SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  update(id: string, fields: Record<string, unknown>): void {
+    const { clauses, values } = buildSetClauses(fields, SUPPLIER_COLUMNS);
+    if (clauses.length === 0) return;
+    values.push(id);
+    getDbSync().prepare(`UPDATE supplier SET ${clauses.join(', ')} WHERE id = ?`).run(...values);
   },
 
   delete(id: string): void {

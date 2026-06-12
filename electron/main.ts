@@ -1,7 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { runMigrations, closeDb, initDatabase } from './db/connection';
+import os from 'os';
+import { runMigrations, closeDb, initDatabase, getDb } from './db/connection';
 import { getStore } from './store';
 import { registerIpcHandlers } from './ipc-handlers';
 import { startAllSyncJobs } from './sync/scheduler';
@@ -57,18 +58,19 @@ app.whenReady().then(async () => {
   });
 
   // Schedule daily database backup
-  setInterval(() => {
+  setInterval(async () => {
     try {
       const store = getStore();
       const backupPath = store.get('backupPath', '') as unknown as string;
       if (backupPath) {
-        const srcPath = path.join(app.getPath('userData'), 'crossflow.db');
+        const database = await getDb();
+        const data = database.export(); // In-memory snapshot, no I/O race
         const date = new Date().toISOString().slice(0, 10);
+        const tmpPath = path.join(os.tmpdir(), `${Date.now()}-backup.tmp`);
         const destPath = path.join(backupPath, `crossflow-backup-${date}.db`);
-        if (fs.existsSync(srcPath)) {
-          fs.copyFileSync(srcPath, destPath);
-          console.log(`Database backup saved to ${destPath}`);
-        }
+        fs.writeFileSync(tmpPath, Buffer.from(data));
+        fs.renameSync(tmpPath, destPath);
+        console.log(`Database backup saved to ${destPath}`);
       }
     } catch (err) {
       console.error('Database backup failed:', err);

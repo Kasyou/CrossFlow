@@ -3,6 +3,7 @@
 
 import { getDbSync } from '../db/connection';
 import { getStore } from '../store';
+import { getSecureSetting } from '../secrets';
 
 interface TrackingResult {
   orderId: string;
@@ -73,7 +74,7 @@ export async function checkAllTrackingReal(): Promise<TrackingResult[]> {
   // Check if tracking API is configured
   const store = getStore();
   const trackingProvider = store.get('trackingProvider', '') as string;
-  const trackingApiKey = store.get('trackingApiKey', '') as string;
+  const trackingApiKey = getSecureSetting('trackingApiKey') || '';
 
   const results: TrackingResult[] = [];
   const now = Date.now();
