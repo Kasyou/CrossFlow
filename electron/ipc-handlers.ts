@@ -391,6 +391,61 @@ export function registerIpcHandlers(): void {
     }));
   }));
 
+  // ---- Auth ----
+  ipcMain.handle('auth:login', wrapHandler(async (_e, username, password) => {
+    const { authenticate } = require('./auth');
+    return authenticate(username, password);
+  }));
+
+  ipcMain.handle('auth:listUsers', wrapHandler(async () => {
+    const { getAllUsers } = require('./auth');
+    return getAllUsers();
+  }));
+
+  ipcMain.handle('auth:createUser', wrapHandler(async (_e, username, password, displayName, role) => {
+    const { createUser, auditLog } = require('./auth');
+    const user = createUser(username, password, displayName, role);
+    auditLog(user.id, 'user:create', 'user', user.id, `Created user ${username} with role ${role}`);
+    return user;
+  }));
+
+  // ---- Freight ----
+  ipcMain.handle('freight:list', wrapHandler(async () => {
+    return getDbSync().prepare(
+      `SELECT * FROM freight_shipment ORDER BY created_at DESC`
+    ).all();
+  }));
+
+  ipcMain.handle('freight:create', wrapHandler(async (_e, data) => {
+    const { v4: uuid } = require('uuid');
+    const db = getDbSync();
+    const id = uuid();
+    db.prepare(
+      `INSERT INTO freight_shipment (id, shipment_ref, transport_mode, container_number, bl_number,
+         origin, destination, departure_date, estimated_arrival, carrier, total_cbm, total_weight_kg, total_cost, currency, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, data.shipment_ref, data.transport_mode, data.container_number || null, data.bl_number || null,
+      data.origin, data.destination, data.departure_date || null, data.estimated_arrival || null,
+      data.carrier || null, data.total_cbm || 0, data.total_weight_kg || 0, data.total_cost || 0, data.currency || 'USD', data.notes || null);
+    return getDbSync().prepare('SELECT * FROM freight_shipment WHERE id = ?').get(id);
+  }));
+
+  // ---- Export ----
+  ipcMain.handle('export:orders', wrapHandler(async (_e, filter) => {
+    const { exportOrders } = require('./export');
+    return exportOrders(filter);
+  }));
+
+  ipcMain.handle('export:inventory', wrapHandler(async () => {
+    const { exportInventory } = require('./export');
+    return exportInventory();
+  }));
+
+  ipcMain.handle('export:profitReport', wrapHandler(async (_e, days) => {
+    const { exportProfitReport } = require('./export');
+    return exportProfitReport(days || 30);
+  }));
+
   // ---- Dashboard ----
   ipcMain.handle(IPC.DASHBOARD_METRICS, wrapHandler(async () => {
     return getDashboardMetrics();

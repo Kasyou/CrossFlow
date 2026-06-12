@@ -7,6 +7,8 @@ import migration002 from './migrations/002_fee_tables';
 import migration003 from './migrations/003_finance_tables';
 import migration004 from './migrations/004_procurement';
 import migration005 from './migrations/005_reviews';
+import migration006 from './migrations/006_users';
+import migration007 from './migrations/007_freight';
 
 interface Migration {
   version: number;
@@ -20,6 +22,8 @@ const migrations: Migration[] = [
   { version: 3, name: 'finance_tables', sql: migration003 },
   { version: 4, name: 'procurement', sql: migration004 },
   { version: 5, name: 'reviews', sql: migration005 },
+  { version: 6, name: 'users', sql: migration006 },
+  { version: 7, name: 'freight', sql: migration007 },
 ];
 
 let SQL: SqlJsStatic | null = null;
