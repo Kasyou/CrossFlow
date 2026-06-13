@@ -1,20 +1,25 @@
 // Data export utilities — CSV generation for reports
 
 import { getDbSync } from './db/connection';
+import { getSkuProfit } from './db/profit-calculator';
 
 function toCSV(columns: string[], rows: any[]): string {
+  // UTF-8 BOM for Excel Chinese character support
+  const BOM = '﻿';
   const header = columns.join(',');
   const body = rows.map(row =>
     columns.map(col => {
       const val = row[col];
       if (val === null || val === undefined) return '';
-      const str = String(val);
+      let str = String(val);
+      // CSV injection prevention: prefix = + - @ with single quote
+      if (/^[=+\-@]/.test(str)) str = "'" + str;
       return str.includes(',') || str.includes('"') || str.includes('\n')
         ? `"${str.replace(/"/g, '""')}"`
         : str;
     }).join(',')
   ).join('\n');
-  return header + '\n' + body;
+  return BOM + header + '\n' + body;
 }
 
 export function exportOrders(filter?: { dateFrom?: string; dateTo?: string; platform_id?: string }): string {
@@ -47,21 +52,6 @@ export function exportInventory(): string {
 }
 
 export function exportProfitReport(days: number = 30): string {
-  const rows = getDbSync().prepare(
-    `SELECT o.sku, p.name as productName, COUNT(DISTINCT o.id) as orderCount,
-            COALESCE(SUM(o.total_amount), 0) as revenue,
-            COALESCE(SUM(o.quantity * p.cost_price), 0) as purchaseCost,
-            COALESCE(SUM(o.total_amount * fc_comm.rate), 0) as commissionFees,
-            COALESCE(SUM(o.total_amount * fc_pay.rate + fc_pay.fixed_amount), 0) as paymentFees,
-            COALESCE(SUM(o.total_amount) - SUM(o.quantity * p.cost_price)
-              - SUM(o.total_amount * COALESCE(fc_comm.rate, 0))
-              - SUM(o.total_amount * COALESCE(fc_pay.rate, 0) + COALESCE(fc_pay.fixed_amount, 0)), 0) as estimatedProfit
-     FROM "order" o
-     JOIN product p ON o.sku = p.sku
-     LEFT JOIN fee_config fc_comm ON o.platform_id = fc_comm.platform_id AND fc_comm.fee_type = 'commission'
-     LEFT JOIN fee_config fc_pay ON o.platform_id = fc_pay.platform_id AND fc_pay.fee_type = 'payment'
-     WHERE o.order_time >= date('now', ?)
-     GROUP BY o.sku ORDER BY estimatedProfit DESC`
-  ).all(`-${days} days`);
-  return toCSV(['sku', 'productName', 'orderCount', 'revenue', 'purchaseCost', 'commissionFees', 'paymentFees', 'estimatedProfit'], rows);
+  const rows = getSkuProfit(days);
+  return toCSV(['sku', 'productName', 'orderCount', 'revenue', 'purchaseCost', 'commissionFees', 'paymentFees', 'otherCosts', 'estimatedProfit'], rows);
 }

@@ -8,6 +8,7 @@ import { syncTikTokOrders } from './tiktok';
 import { syncLazadaOrders } from './lazada';
 import { resolveSku, ensureProductPlatformLink } from '../db/matching';
 import { getDbSync } from '../db/connection';
+export { getDashboardMetrics } from '../db/dashboard-metrics';
 
 const jobs = new Map<string, cron.ScheduledTask>();
 
@@ -133,7 +134,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   throw new Error('unreachable');
 }
 
-export function getDashboardMetrics() {
+function _old_getDashboardMetrics() {
   const db = getDbSync();
   const today = db.prepare(
     `SELECT COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orderCount

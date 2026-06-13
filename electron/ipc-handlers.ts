@@ -20,6 +20,7 @@ import { checkAllTrackingReal } from './sync/tracking-real';
 import { authenticate, getAllUsers, createUser, auditLog } from './auth';
 import { syncExchangeRates } from './sync/exchange-rate';
 import { exportOrders, exportInventory, exportProfitReport } from './export';
+import { getSkuProfit } from './db/profit-calculator';
 
 function wrapHandler<T extends (...args: any[]) => any>(fn: T): T {
   return (async (...args: any[]) => {
@@ -501,34 +502,7 @@ export function registerIpcHandlers(): void {
   }));
 
   ipcMain.handle(IPC.DASHBOARD_SKU_PROFIT, wrapHandler(async () => {
-    return getDbSync().prepare(
-      `SELECT
-        o.sku,
-        p.name as productName,
-        COUNT(DISTINCT o.id) as orderCount,
-        COALESCE(SUM(o.total_amount), 0) as revenue,
-        COALESCE(SUM(o.quantity * p.cost_price), 0) as purchaseCost,
-        COALESCE(SUM(o.total_amount * fc_comm.rate), 0) as commissionFees,
-        COALESCE(SUM(o.total_amount * fc_pay.rate + fc_pay.fixed_amount), 0) as paymentFees,
-        COALESCE(SUM(oc.amount), 0) as otherCosts,
-        COALESCE(
-          SUM(o.total_amount)
-          - SUM(o.quantity * p.cost_price)
-          - SUM(o.total_amount * COALESCE(fc_comm.rate, 0))
-          - SUM(o.total_amount * COALESCE(fc_pay.rate, 0) + COALESCE(fc_pay.fixed_amount, 0))
-          - COALESCE(SUM(oc.amount), 0),
-          0
-        ) as estimatedProfit
-       FROM "order" o
-       JOIN product p ON o.sku = p.sku
-       LEFT JOIN fee_config fc_comm ON o.platform_id = fc_comm.platform_id AND fc_comm.fee_type = 'commission'
-       LEFT JOIN fee_config fc_pay ON o.platform_id = fc_pay.platform_id AND fc_pay.fee_type = 'payment'
-       LEFT JOIN order_cost oc ON o.id = oc.order_id
-       WHERE o.order_time >= date('now', '-30 days')
-       GROUP BY o.sku
-       ORDER BY estimatedProfit DESC
-       LIMIT 20`
-    ).all();
+    return getSkuProfit(30);
   }));
 
   // ---- Settings ----

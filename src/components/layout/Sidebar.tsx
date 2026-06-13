@@ -20,11 +20,18 @@ const menuItems = [
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [collapsed, setCollapsed] = React.useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
+
+  const toggleCollapsed = (val: boolean) => { setCollapsed(val); localStorage.setItem('sidebarCollapsed', String(val)); };
 
   return (
-    <Sider width={200} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+    <Sider
+      collapsible collapsed={collapsed} onCollapse={toggleCollapsed}
+      width={200} collapsedWidth={60}
+      style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}
+    >
       <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #f0f0f0' }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1677ff' }}>CrossFlow</h1>
+        <h1 style={{ margin: 0, fontSize: collapsed ? 16 : 20, fontWeight: 700, color: '#1677ff' }}>{collapsed ? 'CF' : 'CrossFlow'}</h1>
       </div>
       <Menu
         mode="inline"
