@@ -7,17 +7,17 @@ import ImportExcel from '../../components/shared/ImportExcel';
 const { Title, Text } = Typography;
 
 const platformDefaults = [
-  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region', 'marketplaceId'], noApi: false },
-  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId', 'site'], noApi: false },
-  { code: 'tiktok', name: 'TikTok Shop', fields: ['accessToken', 'shopCipher', 'cookies', 'site'], noApi: false },
-  { code: 'temu', name: 'Temu', fields: [], noApi: true },
-  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken', 'site'], noApi: false },
+  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region', 'marketplaceId'], secretFields: ['clientSecret', 'refreshToken'], noApi: false },
+  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId', 'site'], secretFields: ['partnerKey'], noApi: false },
+  { code: 'tiktok', name: 'TikTok Shop', fields: ['accessToken', 'shopCipher', 'cookies', 'site'], secretFields: ['accessToken', 'shopCipher', 'cookies'], noApi: false },
+  { code: 'temu', name: 'Temu', fields: [], secretFields: [], noApi: true },
+  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken', 'site'], secretFields: ['appSecret', 'accessToken'], noApi: false },
 ];
 
 const Settings: React.FC = () => {
   const { platforms, loadPlatforms, saveAuth, toggleSync, syncNow } = usePlatformStore();
   const { setSetting } = useSettingsStore();
-  const [authModal, setAuthModal] = useState<{ open: boolean; code: string; name: string; fields: string[] }>({ open: false, code: '', name: '', fields: [] });
+  const [authModal, setAuthModal] = useState<{ open: boolean; code: string; name: string; fields: string[]; secretFields: string[] }>({ open: false, code: '', name: '', fields: [], secretFields: [] });
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [backupPath, setBackupPath] = useState('');
   const [form] = Form.useForm();
@@ -57,7 +57,7 @@ const Settings: React.FC = () => {
                     <Button key="auth" size="small" disabled>仅支持Excel导入</Button>
                   ) : (
                     <Button key="auth" size="small" onClick={() => {
-                      setAuthModal({ open: true, code: pd.code, name: pd.name, fields: pd.fields });
+                      setAuthModal({ open: true, code: pd.code, name: pd.name, fields: pd.fields, secretFields: pd.secretFields || [] });
                       form.resetFields();
                     }}>
                       {config?.authConfigured ? '更新授权' : '配置授权'}
@@ -123,11 +123,14 @@ const Settings: React.FC = () => {
         }}
       >
         <Form form={form} layout="vertical">
-          {authModal.fields.map((f) => (
-            <Form.Item key={f} name={f} label={f} rules={[{ required: true, message: `请输入${f}` }]}>
-              <Input.Password placeholder={f} />
-            </Form.Item>
-          ))}
+          {authModal.fields.map((f) => {
+            const isSecret = authModal.secretFields.includes(f);
+            return (
+              <Form.Item key={f} name={f} label={f} rules={[{ required: true, message: `请输入${f}` }]}>
+                {isSecret ? <Input.Password placeholder={f} /> : <Input placeholder={f} />}
+              </Form.Item>
+            );
+          })}
         </Form>
       </Modal>
     </div>

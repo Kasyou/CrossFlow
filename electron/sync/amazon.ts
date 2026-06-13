@@ -137,11 +137,11 @@ async function fetchOrderItems(baseUrl: string, accessToken: string, orderId: st
 }
 
 function mapOrderStatus(amazonStatus: string): string {
+  // Note: status downgrade (e.g. shipped→pending on unknown status) is prevented
+  // centrally by order-repo.ts ON CONFLICT CASE, not here.
   const map: Record<string, string> = {
-    'Unshipped': 'pending',
-    'PartiallyShipped': 'matched',
-    'Shipped': 'shipped',
-    'Canceled': 'cancelled',
+    'Unshipped': 'pending', 'PartiallyShipped': 'matched',
+    'Shipped': 'shipped', 'Canceled': 'cancelled',
   };
   return map[amazonStatus] || 'pending';
 }

@@ -129,7 +129,7 @@ async function fetchOrderDetail(
   };
   try {
     const detailUrl = buildSignedUrl(host, '/api/v2/order/get_order_detail', detailParams, partnerKey);
-    const res = await fetch(detailUrl, { headers: { 'Content-Type': 'application/json' } });
+    const res = await rateLimitedFetch('shopee', 10, 10, detailUrl, { headers: { 'Content-Type': 'application/json' } });
     const data = await res.json() as any;
     if (data.error) {
       console.warn(`Failed to fetch detail for order ${orderSn}: ${data.error} - ${data.message}`);

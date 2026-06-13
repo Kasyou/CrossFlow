@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Steps, Button, Result } from 'antd';
+import { LinkOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const Onboarding: React.FC = () => {
@@ -21,7 +22,7 @@ const Onboarding: React.FC = () => {
       title: '配置平台授权',
       content: (
         <Result
-          icon={<span style={{ fontSize: 72 }}>🔌</span>}
+          icon={<LinkOutlined style={{ fontSize: 72, color: '#1677ff' }} />}
           title="连接您的电商平台"
           subTitle="前往设置页面，为 Amazon、TikTok Shop、Temu、Shopee 等平台配置API授权或导入Excel订单。"
           extra={<Button type="primary" onClick={() => navigate('/settings')}>前往设置</Button>}
@@ -32,7 +33,7 @@ const Onboarding: React.FC = () => {
       title: '添加商品和仓库',
       content: (
         <Result
-          icon={<span style={{ fontSize: 72 }}>📦</span>}
+          icon={<InboxOutlined style={{ fontSize: 72, color: '#1677ff' }} />}
           title="录入商品和仓库信息"
           subTitle="在商品管理页面添加您的SKU，在库存管理页面配置仓库。设置安全库存线以接收预警通知。"
           extra={<Button type="primary" onClick={() => navigate('/products')}>前往商品管理</Button>}

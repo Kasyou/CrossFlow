@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space } from 'antd';
+import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space, DatePicker } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { IPC } from '../../shared/ipc-channels';
 
@@ -50,7 +50,7 @@ const Freight: React.FC = () => {
             <Form.Item name="carrier" label="承运商"><Input /></Form.Item></Space>
           <Space><Form.Item name="origin" label="起运港"><Input /></Form.Item><Form.Item name="destination" label="目的港"><Input /></Form.Item></Space>
           <Space><Form.Item name="container_number" label="柜号"><Input /></Form.Item><Form.Item name="bl_number" label="提单号"><Input /></Form.Item></Space>
-          <Space><Form.Item name="estimated_arrival" label="预计到港"><Input placeholder="2024-12-31" /></Form.Item>
+          <Space><Form.Item name="estimated_arrival" label="预计到港"><DatePicker style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="total_cost" label="费用"><InputNumber min={0} style={{ width: 120 }} /></Form.Item></Space>
           <Form.Item name="notes" label="备注"><Input.TextArea rows={2} /></Form.Item>
         </Form>
