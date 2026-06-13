@@ -8,9 +8,12 @@ function getBucket(key: string, maxTokens: number, refillRatePerSec: number): Bu
   let b = buckets.get(key);
   if (!b) { b = { tokens: maxTokens, lastRefill: Date.now() }; buckets.set(key, b); }
   const now = Date.now();
-  const refill = Math.floor((now - b.lastRefill) / 1000) * refillRatePerSec;
-  b.tokens = Math.min(maxTokens, b.tokens + refill);
-  b.lastRefill = now;
+  const seconds = Math.floor((now - b.lastRefill) / 1000);
+  const refill = seconds * refillRatePerSec;
+  if (refill > 0) {
+    b.tokens = Math.min(maxTokens, b.tokens + refill);
+    b.lastRefill = now; // only advance clock when tokens actually refilled
+  }
   return b;
 }
 

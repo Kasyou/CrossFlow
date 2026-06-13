@@ -135,6 +135,11 @@ describe("syncShopeeOrders", () => {
         },
       }),
     });
+    // Detail response for SP001
+    (globalThis.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ error: null, response: { order_list: [{ item_list: [{ item_sku: "BT-EP10-BK" }] }] } }),
+    });
 
     const plat = { ...MOCK_PLATFORM, code: "shopee", auth_data: JSON.stringify({ partnerId: 123, partnerKey: "key", shopId: 456 }) };
     const result = await syncShopeeOrders(plat as any);
@@ -159,6 +164,13 @@ describe("syncShopeeOrders", () => {
         },
       }),
     });
+    // Detail responses for each order
+    for (let i = 0; i < 5; i++) {
+      (globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ error: null, response: { order_list: [{ item_list: [{ item_sku: "SKU" + String(i) }] }] } }),
+      });
+    }
     const plat = { ...MOCK_PLATFORM, code: "shopee", auth_data: JSON.stringify({ partnerId: 1, partnerKey: "k", shopId: 1 }) };
     const result = await syncShopeeOrders(plat as any);
     expect(result.orders[0].status).toBe("pending");     // UNPAID
