@@ -67,7 +67,7 @@ export async function syncShopeeOrders(platform: PlatformRow): Promise<{ orders:
   const partnerKey = String(auth.partnerKey);
   const partnerId = String(auth.partnerId);
   const shopId = String(auth.shopId);
-  let allOrderList: any[] = [];
+  const allOrderList: any[] = [];
   let offset = 0;
   const pageSize = 100;
   do {
