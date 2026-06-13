@@ -49,11 +49,11 @@ const Products: React.FC = () => {
   const columns: ColumnsType<Product> = [
     { title: 'SKU', dataIndex: 'sku', width: 140 },
     { title: '商品名称', dataIndex: 'name', width: 180, ellipsis: true },
-    { title: '英文名称', dataIndex: 'nameEn', width: 200, ellipsis: true, render: (v) => v || '-' },
-    { title: '分类', dataIndex: 'category', width: 100, render: (v) => v || '-' },
-    { title: '采购成本', dataIndex: 'costPrice', width: 100, render: (v) => `¥${v.toFixed(2)}` },
-    { title: '重量(kg)', dataIndex: 'weightKg', width: 80 },
-    { title: '安全库存', dataIndex: 'safetyStock', width: 80 },
+    { title: '英文名称', dataIndex: 'name_en', width: 200, ellipsis: true, render: (v: string | null) => v || '-' },
+    { title: '分类', dataIndex: 'category', width: 100, render: (v: string | null) => v || '-' },
+    { title: '采购成本', dataIndex: 'cost_price', width: 100, render: (v: number) => `¥${(v || 0).toFixed(2)}` },
+    { title: '重量(kg)', dataIndex: 'weight_kg', width: 80 },
+    { title: '安全库存', dataIndex: 'safety_stock', width: 80 },
     {
       title: '操作', width: 140,
       render: (_, record) => (
