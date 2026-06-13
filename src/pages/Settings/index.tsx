@@ -7,11 +7,11 @@ import ImportExcel from '../../components/shared/ImportExcel';
 const { Title, Text } = Typography;
 
 const platformDefaults = [
-  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region', 'marketplaceId'] },
-  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId', 'site'] },
-  { code: 'tiktok', name: 'TikTok Shop', fields: ['accessToken', 'shopCipher', 'cookies', 'site'] },
-  { code: 'temu', name: 'Temu', fields: [] },
-  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken', 'site'] },
+  { code: 'amazon', name: 'Amazon', fields: ['clientId', 'clientSecret', 'refreshToken', 'region', 'marketplaceId'], noApi: false },
+  { code: 'shopee', name: 'Shopee', fields: ['partnerId', 'partnerKey', 'shopId', 'site'], noApi: false },
+  { code: 'tiktok', name: 'TikTok Shop', fields: ['accessToken', 'shopCipher', 'cookies', 'site'], noApi: false },
+  { code: 'temu', name: 'Temu', fields: [], noApi: true },
+  { code: 'lazada', name: 'Lazada', fields: ['appKey', 'appSecret', 'accessToken', 'site'], noApi: false },
 ];
 
 const Settings: React.FC = () => {
@@ -53,12 +53,16 @@ const Settings: React.FC = () => {
                     checked={config?.syncEnabled ?? false}
                     onChange={(v) => toggleSync(pd.code, v)}
                   />,
-                  <Button key="auth" size="small" onClick={() => {
-                    setAuthModal({ open: true, code: pd.code, name: pd.name, fields: pd.fields });
-                    form.resetFields();
-                  }}>
-                    {config?.authConfigured ? '更新授权' : '配置授权'}
-                  </Button>,
+                  pd.noApi ? (
+                    <Button key="auth" size="small" disabled>仅支持Excel导入</Button>
+                  ) : (
+                    <Button key="auth" size="small" onClick={() => {
+                      setAuthModal({ open: true, code: pd.code, name: pd.name, fields: pd.fields });
+                      form.resetFields();
+                    }}>
+                      {config?.authConfigured ? '更新授权' : '配置授权'}
+                    </Button>
+                  ),
                   <Button key="syncnow" size="small" loading={syncing === pd.code} onClick={() => handleSyncNow(pd.code)}>立即同步</Button>,
                 ]}
               >
