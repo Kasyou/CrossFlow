@@ -74,7 +74,7 @@ async function fetchOrders(accessToken: string, region: string, marketplaceId?: 
   const mktId = marketplaceId || MARKETPLACE_IDS[region] || MARKETPLACE_IDS.na;
   const createdAfter = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  let allOrders: any[] = [];
+  const allOrders: any[] = [];
   let nextToken: string | undefined;
   do {
     const url = `${baseUrl}/orders/v0/orders?MarketplaceIds=${mktId}&CreatedAfter=${createdAfter}&OrderStatuses=Unshipped&OrderStatuses=PartiallyShipped${nextToken ? `&NextToken=${nextToken}` : ''}`;

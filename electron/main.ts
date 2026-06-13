@@ -40,7 +40,7 @@ app.whenReady().then(async () => {
   await runMigrations();
   await initDatabase();
   // Ensure default admin user exists
-  try { const { ensureDefaultAdmin } = require('./auth'); ensureDefaultAdmin(); } catch {}
+  try { const { ensureDefaultAdmin } = require('./auth'); ensureDefaultAdmin(); } catch { /* auth not available */ }
   registerIpcHandlers();
   startAllSyncJobs();
   createWindow();
