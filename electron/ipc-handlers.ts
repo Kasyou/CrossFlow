@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { v4 as uuid } from 'uuid';
 import { IPC } from '../src/shared/ipc-channels';
 import { OrderRepo } from './db/repositories/order-repo';
 import { InventoryRepo } from './db/repositories/inventory-repo';
@@ -11,6 +12,14 @@ import { getSecureSetting, setSecureSetting } from './secrets';
 import { runManualSync } from './sync/scheduler';
 import { getDashboardMetrics } from './sync/scheduler';
 import { importTemuExcel } from './sync/temu';
+import { SupplierRepo } from './db/repositories/supplier-repo';
+import { PurchaseOrderRepo } from './db/repositories/purchase-order-repo';
+import { ReviewRepo } from './db/repositories/review-repo';
+import { checkAllTracking } from './sync/tracking';
+import { checkAllTrackingReal } from './sync/tracking-real';
+import { authenticate, getAllUsers, createUser, auditLog } from './auth';
+import { syncExchangeRates } from './sync/exchange-rate';
+import { exportOrders, exportInventory, exportProfitReport } from './export';
 
 function wrapHandler<T extends (...args: any[]) => any>(fn: T): T {
   return (async (...args: any[]) => {
@@ -250,10 +259,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.TRACKING_CHECK, wrapHandler(async () => {
     // Try real tracking API first, fall back to warehouse-type heuristic
     try {
-      const { checkAllTrackingReal } = require('./sync/tracking-real');
       return await checkAllTrackingReal();
     } catch {
-      const { checkAllTracking } = require('./sync/tracking');
       return checkAllTracking();
     }
   }));
@@ -294,63 +301,52 @@ export function registerIpcHandlers(): void {
 
   // ---- Supplier ----
   ipcMain.handle('supplier:list', wrapHandler(async () => {
-    const { SupplierRepo } = require('./db/repositories/supplier-repo');
     return SupplierRepo.getAll();
   }));
 
   ipcMain.handle('supplier:create', wrapHandler(async (_e, data) => {
-    const { SupplierRepo } = require('./db/repositories/supplier-repo');
     return SupplierRepo.create(data);
   }));
 
   ipcMain.handle('supplier:update', wrapHandler(async (_e, id, fields) => {
-    const { SupplierRepo } = require('./db/repositories/supplier-repo');
     SupplierRepo.update(id, fields);
     return { success: true };
   }));
 
   ipcMain.handle('supplier:delete', wrapHandler(async (_e, id) => {
-    const { SupplierRepo } = require('./db/repositories/supplier-repo');
     SupplierRepo.delete(id);
     return { success: true };
   }));
 
   // ---- Purchase Order ----
   ipcMain.handle('po:list', wrapHandler(async () => {
-    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
     return PurchaseOrderRepo.getAll();
   }));
 
   ipcMain.handle('po:create', wrapHandler(async (_e, supplierId, items) => {
-    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
     return PurchaseOrderRepo.create(supplierId, items);
   }));
 
   ipcMain.handle('po:updateStatus', wrapHandler(async (_e, id, status) => {
-    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
     PurchaseOrderRepo.updateStatus(id, status);
     return { success: true };
   }));
 
   ipcMain.handle('po:delete', wrapHandler(async (_e, id) => {
-    const { PurchaseOrderRepo } = require('./db/repositories/purchase-order-repo');
     PurchaseOrderRepo.delete(id);
     return { success: true };
   }));
 
   // ---- Reviews ----
   ipcMain.handle('review:list', wrapHandler(async (_e, filter) => {
-    const { ReviewRepo } = require('./db/repositories/review-repo');
     return ReviewRepo.getAll(filter || {});
   }));
 
   ipcMain.handle('review:alerts', wrapHandler(async () => {
-    const { ReviewRepo } = require('./db/repositories/review-repo');
     return ReviewRepo.getNegativeAlerts();
   }));
 
   ipcMain.handle('review:acknowledge', wrapHandler(async (_e, alertId) => {
-    const { ReviewRepo } = require('./db/repositories/review-repo');
     ReviewRepo.acknowledgeAlert(alertId);
     return { success: true };
   }));
@@ -363,7 +359,6 @@ export function registerIpcHandlers(): void {
   }));
 
   ipcMain.handle('feeConfig:save', wrapHandler(async (_e, data) => {
-    const { v4: uuid } = require('uuid');
     const db = getDbSync();
     const existing = db.prepare('SELECT id FROM fee_config WHERE platform_id = ? AND fee_type = ?').get(data.platform_id, data.fee_type) as any;
     if (existing) {
@@ -376,7 +371,6 @@ export function registerIpcHandlers(): void {
 
   // ---- Finance ----
   ipcMain.handle('finance:exchangeRate', wrapHandler(async () => {
-    const { syncExchangeRates, convertCurrency } = require('./sync/exchange-rate');
     const result = await syncExchangeRates();
     return result;
   }));
@@ -413,17 +407,14 @@ export function registerIpcHandlers(): void {
 
   // ---- Auth ----
   ipcMain.handle('auth:login', wrapHandler(async (_e, username, password) => {
-    const { authenticate } = require('./auth');
     return authenticate(username, password);
   }));
 
   ipcMain.handle('auth:listUsers', wrapHandler(async () => {
-    const { getAllUsers } = require('./auth');
     return getAllUsers();
   }));
 
   ipcMain.handle('auth:createUser', wrapHandler(async (_e, username, password, displayName, role) => {
-    const { createUser, auditLog } = require('./auth');
     const user = createUser(username, password, displayName, role);
     auditLog(user.id, 'user:create', 'user', user.id, `Created user ${username} with role ${role}`);
     return user;
@@ -437,7 +428,6 @@ export function registerIpcHandlers(): void {
   }));
 
   ipcMain.handle('freight:create', wrapHandler(async (_e, data) => {
-    const { v4: uuid } = require('uuid');
     const db = getDbSync();
     const id = uuid();
     db.prepare(
@@ -452,17 +442,14 @@ export function registerIpcHandlers(): void {
 
   // ---- Export ----
   ipcMain.handle('export:orders', wrapHandler(async (_e, filter) => {
-    const { exportOrders } = require('./export');
     return exportOrders(filter);
   }));
 
   ipcMain.handle('export:inventory', wrapHandler(async () => {
-    const { exportInventory } = require('./export');
     return exportInventory();
   }));
 
   ipcMain.handle('export:profitReport', wrapHandler(async (_e, days) => {
-    const { exportProfitReport } = require('./export');
     return exportProfitReport(days || 30);
   }));
 
