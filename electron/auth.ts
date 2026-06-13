@@ -1,7 +1,7 @@
 // Local authentication for CrossFlow desktop app
 // Uses pbkdf2 for password hashing, role-based access control
 
-import { pbkdf2Sync, randomBytes } from 'crypto';
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 import { getDbSync } from './db/connection';
 import { v4 as uuid } from 'uuid';
 
@@ -47,11 +47,31 @@ export function createUser(username: string, password: string, displayName: stri
   return getUserById(id)!;
 }
 
+// Rate limiting: track failed attempts per username (clears on success)
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
 export function authenticate(username: string, password: string): { user: UserRow; token: string } | null {
+  // Rate limiting check (5 attempts per minute)
+  const now = Date.now();
+  const attempts = loginAttempts.get(username);
+  if (attempts && now < attempts.resetAt && attempts.count >= 5) {
+    return null; // Rate limited
+  }
+
   const db = getDbSync();
   const row = db.prepare('SELECT * FROM user WHERE username = ? AND active = 1').get(username) as any;
-  if (!row) return null;
-  if (!verifyPassword(password, row.password_hash)) return null;
+  if (!row || !verifyPassword(password, row.password_hash)) {
+    // Track failed attempt
+    if (!attempts || now >= attempts.resetAt) {
+      loginAttempts.set(username, { count: 1, resetAt: now + 60000 });
+    } else {
+      attempts.count++;
+    }
+    return null;
+  }
+
+  // Clear failed attempts on success
+  loginAttempts.delete(username);
 
   db.prepare('UPDATE user SET last_login = datetime(\'now\') WHERE id = ?').run(row.id);
 
@@ -59,7 +79,8 @@ export function authenticate(username: string, password: string): { user: UserRo
     id: row.id, username: row.username, display_name: row.display_name,
     role: row.role, active: row.active, last_login: row.last_login, created_at: row.created_at,
   };
-  const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+  const token = randomBytes(32).toString('hex');
+  storeToken(token, user.id);
   return { user, token };
 }
 
@@ -71,6 +92,27 @@ export function getUserById(id: string): UserRow | undefined {
 
 export function getAllUsers(): UserRow[] {
   return getDbSync().prepare('SELECT * FROM user ORDER BY created_at').all() as any[];
+}
+
+export function ensureDefaultAdmin(): void {
+  const db = getDbSync();
+  const count = (db.prepare('SELECT COUNT(*) as c FROM user').get() as any)?.c || 0;
+  if (count === 0) {
+    console.log('No users found — creating default admin (password: admin123)');
+    createUser('admin', 'admin123', '管理员', 'admin');
+  }
+}
+
+const activeTokens = new Map<string, string>(); // token → userId
+
+export function verifyToken(token: string): UserRow | null {
+  const userId = activeTokens.get(token);
+  if (!userId) return null;
+  return getUserById(userId) || null;
+}
+
+export function storeToken(token: string, userId: string): void {
+  activeTokens.set(token, userId);
 }
 
 export function checkPermission(role: string, action: string): boolean {

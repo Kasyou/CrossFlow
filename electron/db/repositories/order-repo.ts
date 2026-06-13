@@ -78,6 +78,11 @@ export const OrderRepo = {
          amount_original, currency_original, version, synced_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
        ON CONFLICT(platform_id, platform_order_id) DO UPDATE SET
+         sku = excluded.sku,
+         product_id = excluded.product_id,
+         quantity = excluded.quantity,
+         unit_price = excluded.unit_price,
+         total_amount = excluded.total_amount,
          status = excluded.status,
          platform_status = excluded.platform_status,
          tracking_number = excluded.tracking_number,

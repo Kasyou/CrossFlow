@@ -39,6 +39,8 @@ function createWindow() {
 app.whenReady().then(async () => {
   await runMigrations();
   await initDatabase();
+  // Ensure default admin user exists
+  try { const { ensureDefaultAdmin } = require('./auth'); ensureDefaultAdmin(); } catch {}
   registerIpcHandlers();
   startAllSyncJobs();
   createWindow();

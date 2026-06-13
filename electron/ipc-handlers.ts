@@ -532,8 +532,8 @@ export function registerIpcHandlers(): void {
       autoLaunch: store.get('autoLaunch', false),
       minimizeToTray: store.get('minimizeToTray', true),
       aiProvider: store.get('aiProvider', 'deepseek'),
-      aiApiKey: getSecureSetting('aiApiKey') || '',
-      trackingApiKey: getSecureSetting('trackingApiKey') || '',
+      aiApiKeyConfigured: !!(getSecureSetting('aiApiKey')),
+      trackingApiKeyConfigured: !!(getSecureSetting('trackingApiKey')),
       backupPath: store.get('backupPath', ''),
     };
   }));

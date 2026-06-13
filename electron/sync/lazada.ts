@@ -18,6 +18,11 @@ interface LazadaOrder {
   order_time: string;
 }
 
+const LAZADA_TIMEZONES: Record<string, string> = {
+  sg: '+0800', my: '+0800', ph: '+0800', th: '+0700', id: '+0700', vn: '+0700',
+};
+function getLazadaTz(site: string): string { return LAZADA_TIMEZONES[site] || '+0800'; }
+
 const LAZADA_ENDPOINTS: Record<string, string> = {
   sg: 'https://api.lazada.sg/rest',
   my: 'https://api.lazada.com.my/rest',
@@ -53,10 +58,10 @@ export async function syncLazadaOrders(platform: PlatformRow): Promise<{ orders:
   const apiPath = '/orders/get';
   const params: Record<string, string> = {
     app_key: appKey,
-    timestamp: now.toISOString().replace(/\.\d{3}Z$/, '+0800'),
+    timestamp: now.toISOString().replace(/\.\d{3}Z$/, getLazadaTz(site)),
     sign_method: 'sha256',
     access_token: accessToken,
-    created_after: yesterday.toISOString().replace(/\.\d{3}Z$/, '+0800'),
+    created_after: yesterday.toISOString().replace(/\.\d{3}Z$/, getLazadaTz(site)),
     status: 'pending,ready_to_ship,shipped',
     limit: '100',
     offset: '0',
@@ -80,7 +85,7 @@ export async function syncLazadaOrders(platform: PlatformRow): Promise<{ orders:
   // Step 2: Fetch order items for SKU detail
   const enriched = await Promise.all(
     orderList.map(async (o: any) => {
-      const items = await fetchLazadaOrderItems(baseUrl, appKey, appSecret, accessToken, o.order_id);
+      const items = await fetchLazadaOrderItems(baseUrl, appKey, appSecret, accessToken, o.order_id, site);
       const primaryItem = items[0] || {};
       return {
         platform_order_id: String(o.order_id),
@@ -107,12 +112,12 @@ export async function syncLazadaOrders(platform: PlatformRow): Promise<{ orders:
 }
 
 async function fetchLazadaOrderItems(
-  baseUrl: string, appKey: string, appSecret: string, accessToken: string, orderId: number,
+  baseUrl: string, appKey: string, appSecret: string, accessToken: string, orderId: number, site: string,
 ): Promise<any[]> {
   const apiPath = '/order/items/get';
   const params: Record<string, string> = {
     app_key: appKey,
-    timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, '+0800'),
+    timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, getLazadaTz(site)),
     sign_method: 'sha256',
     access_token: accessToken,
     order_id: String(orderId),

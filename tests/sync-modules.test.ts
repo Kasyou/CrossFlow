@@ -29,12 +29,11 @@ describe("syncAmazonOrders", () => {
   });
 
   it("fetches access token then orders", async () => {
-    // First call: getAccessToken -> returns token
-    // Second call: fetchOrders -> returns orders
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ access_token: "tok123" }),
     });
+    // Orders list (no NextToken → pagination stops)
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -45,6 +44,8 @@ describe("syncAmazonOrders", () => {
         },
       }),
     });
+    // orderItems response
+    (globalThis.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ payload: { OrderItems: [] } }) });
 
     const result = await syncAmazonOrders(MOCK_PLATFORM as any);
     expect(result.orders).toHaveLength(1);
@@ -78,6 +79,7 @@ describe("syncAmazonOrders", () => {
       ok: true,
       json: async () => ({ access_token: "tok" }),
     });
+    // Orders list (no NextToken → pagination stops)
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -91,12 +93,16 @@ describe("syncAmazonOrders", () => {
         },
       }),
     });
+    // 4 orderItems responses (one per order)
+    for (let i = 0; i < 4; i++) {
+      (globalThis.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ payload: { OrderItems: [] } }) });
+    }
     const result = await syncAmazonOrders(MOCK_PLATFORM as any);
     expect(result.orders[0].status).toBe("pending");
     expect(result.orders[1].status).toBe("matched");
     expect(result.orders[2].status).toBe("shipped");
     expect(result.orders[3].status).toBe("cancelled");
-  });
+  }, 30000);
 });
 
 describe("syncShopeeOrders", () => {

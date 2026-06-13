@@ -21,9 +21,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Seed default admin (password: admin123, change immediately)
-INSERT OR IGNORE INTO user (id, username, password_hash, display_name, role)
-VALUES ('u-admin', 'admin', '$2a$10$placeholder_admin_hash_change_immediately', '管理员', 'admin');
+-- Default admin is created by auth.ts on first run if no users exist
 `;
 
 export default migration;
