@@ -191,5 +191,5 @@ function mapTikTokStatus(status: string): string {
     'delivered': 'delivered', 'completed': 'delivered',
     'cancelled': 'cancelled', 'returned': 'refunding',
   };
-  return map[s] || 'pending';
+  return map[s] || 'matched';
 }

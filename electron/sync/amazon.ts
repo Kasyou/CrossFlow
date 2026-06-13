@@ -143,5 +143,5 @@ function mapOrderStatus(amazonStatus: string): string {
     'Unshipped': 'pending', 'PartiallyShipped': 'matched',
     'Shipped': 'shipped', 'Canceled': 'cancelled',
   };
-  return map[amazonStatus] || 'pending';
+  return map[amazonStatus] || 'matched'; // ON CONFLICT CASE prevents actual downgrade
 }

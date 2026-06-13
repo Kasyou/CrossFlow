@@ -122,7 +122,9 @@ const Header: React.FC = () => {
           spin={syncing}
           style={{ fontSize: 18, cursor: 'pointer', color: syncing ? '#1677ff' : undefined }}
           title="手动同步全部平台"
+          role="button" tabIndex={0}
           onClick={handleSyncAll}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSyncAll(); }}
         />
         <Popover
           content={notificationContent}
@@ -132,7 +134,7 @@ const Header: React.FC = () => {
           onOpenChange={(visible) => { if (visible) fetchNotifications(); }}
         >
           <Badge count={badgeCount} size="small" offset={[-2, 2]}>
-            <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+            <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} role="button" tabIndex={0} aria-label="同步通知" />
           </Badge>
         </Popover>
       </Space>
