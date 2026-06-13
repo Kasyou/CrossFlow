@@ -14,7 +14,7 @@ export default defineConfig({
       rollupOptions: {
         external: [
           'electron',
-          'better-sqlite3',
+          'sql.js',
           'electron-store',
           'node-cron',
           'xlsx',
@@ -23,6 +23,7 @@ export default defineConfig({
           'path',
           'fs',
           'crypto',
+          'os',
         ],
       },
     },

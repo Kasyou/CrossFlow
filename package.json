@@ -54,28 +54,7 @@
     "jsdom": "^29.1.1",
     "typescript": "^5.5.0",
     "vite": "^5.4.0",
-    "vite-plugin-electron": "^0.28.0",
-    "vite-plugin-electron-renderer": "^0.14.0",
     "vitest": "^2.0.0",
     "whatwg-fetch": "^3.6.20"
-  },
-  "build": {
-    "appId": "com.crossflow.app",
-    "productName": "CrossFlow",
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "resources/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ]
   }
 }

@@ -10,5 +10,8 @@ release/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
-*.png
+.playwright-mcp/*.png
 test-results/
+*.db
+*.db-journal
+*.db-wal

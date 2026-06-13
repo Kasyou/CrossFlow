@@ -13,6 +13,12 @@ files:
   - dist/**/*
   - dist-electron/**/*
 
+extraResources:
+  - from: node_modules/sql.js/dist/
+    to: sql-wasm/
+    filter:
+      - "*.wasm"
+
 win:
   target:
     - target: nsis

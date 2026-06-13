@@ -36,7 +36,15 @@ let dbPath = '';
 
 async function getSQL(): Promise<SqlJsStatic> {
   if (!SQL) {
-    SQL = await initSqlJs();
+    SQL = await initSqlJs({
+      locateFile: (file: string) => {
+        // In packaged Electron app, WASM is in extraResources
+        const resourcePath = path.join(process.resourcesPath || '', 'sql-wasm', file);
+        if (fs.existsSync(resourcePath)) return resourcePath;
+        // Fallback: same directory as JS bundle or node_modules
+        return file;
+      },
+    });
   }
   return SQL;
 }
