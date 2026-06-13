@@ -38,10 +38,14 @@ async function getSQL(): Promise<SqlJsStatic> {
   if (!SQL) {
     SQL = await initSqlJs({
       locateFile: (file: string) => {
-        // In packaged Electron app, WASM is in extraResources
-        const resourcePath = path.join(process.resourcesPath || '', 'sql-wasm', file);
-        if (fs.existsSync(resourcePath)) return resourcePath;
-        // Fallback: same directory as JS bundle or node_modules
+        // Production: packaged Electron app with extraResources
+        if (process.resourcesPath) {
+          const prodPath = path.join(process.resourcesPath, 'sql-wasm', file);
+          if (fs.existsSync(prodPath)) return prodPath;
+        }
+        // Dev: electron-vite serves from node_modules
+        const devPath = path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file);
+        if (fs.existsSync(devPath)) return devPath;
         return file;
       },
     });
