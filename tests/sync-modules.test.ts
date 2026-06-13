@@ -208,7 +208,7 @@ describe("Amazon header spelling", () => {
   it("uses correct Content-Type header", () => {
     const fs = require("fs");
     const src = fs.readFileSync("./electron/sync/amazon.ts", "utf-8");
-    const line = src.split("\n").find((l) => l.includes("Content-Type"));
+    const line = src.split("\n").find((l: string) => l.includes("Content-Type"));
     expect(line).toBeTruthy();
     expect(line).toContain("form-urlencoded");
   });

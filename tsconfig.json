@@ -8,6 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "types": ["vitest/globals"],
     "outDir": "dist",
     "rootDir": ".",
     "baseUrl": ".",
@@ -16,5 +17,5 @@
       "@electron/*": ["electron/*"]
     }
   },
-  "include": ["src/**/*", "electron/**/*"]
+  "include": ["src/**/*", "electron/**/*", "tests/**/*"]
 }

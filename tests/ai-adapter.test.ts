@@ -36,7 +36,7 @@ let client: OpenAI | null = null;
 beforeAll(() => { if (hasKey) client = new OpenAI({ apiKey: API_KEY, baseURL: BASE_URL }); });
 
 describe("AI Adapter - DeepSeek live integration", () => {
-  it("translates product name to English", { skip: !hasKey }, async () => {
+  it("translates product name to English", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -50,9 +50,9 @@ describe("AI Adapter - DeepSeek live integration", () => {
     console.log("Translate result:", result);
     expect(result.length).toBeGreaterThan(0);
     expect(result.toLowerCase()).toMatch(/bluetooth|earbud|headphone|wireless/);
-  }, 30000);
+  });
 
-  it("classifies refund reason to correct category", { skip: !hasKey }, async () => {
+  it("classifies refund reason to correct category", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -66,9 +66,9 @@ describe("AI Adapter - DeepSeek live integration", () => {
     console.log("Classify result:", result);
     expect(["quality", "logistics", "buyer", "other"]).toContain(result);
     expect(result).toBe("quality");
-  }, 30000);
+  });
 
-  it("classifies logistics-related refund", { skip: !hasKey }, async () => {
+  it("classifies logistics-related refund", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -82,9 +82,9 @@ describe("AI Adapter - DeepSeek live integration", () => {
     console.log("Classify logistics result:", result);
     expect(["quality", "logistics", "buyer", "other"]).toContain(result);
     expect(result).toBe("logistics");
-  }, 30000);
+  });
 
-  it("generates anomaly alert in Chinese", { skip: !hasKey }, async () => {
+  it("generates anomaly alert in Chinese", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -98,9 +98,9 @@ describe("AI Adapter - DeepSeek live integration", () => {
     console.log("Anomaly alert:", result);
     expect(result.length).toBeGreaterThan(0);
     expect(result).toMatch(/[一-鿿]/);
-  }, 30000);
+  });
 
-  it("generates anomaly alert for order spike", { skip: !hasKey }, async () => {
+  it("generates anomaly alert for order spike", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -114,9 +114,9 @@ describe("AI Adapter - DeepSeek live integration", () => {
     console.log("Spike alert:", result);
     expect(result.length).toBeGreaterThan(0);
     expect(result).toMatch(/[一-鿿]/);
-  }, 30000);
+  });
 
-  it("handles empty/malformed refund reason gracefully", { skip: !hasKey }, async () => {
+  it("handles empty/malformed refund reason gracefully", { skip: !hasKey, timeout: 30000 }, async () => {
     const res = await client!.chat.completions.create({
       model: MODEL,
       messages: [{
@@ -129,5 +129,5 @@ describe("AI Adapter - DeepSeek live integration", () => {
     const result = res.choices[0]?.message?.content?.trim().toLowerCase() || "";
     console.log("Gibberish classify result:", result);
     expect(["quality", "logistics", "buyer", "other"]).toContain(result);
-  }, 30000);
+  });
 });

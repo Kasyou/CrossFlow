@@ -88,7 +88,7 @@ describe("OrderStore", () => {
 
 describe("DashboardStore", () => {
   beforeEach(() => {
-    useDashboardStore.setState({ metrics: null, salesTrend: [], platformShare: [], skuProfit: [], lowStock: [], loading: false });
+    useDashboardStore.setState({ metrics: null, salesTrend: [], platformShare: [], skuProfit: [], loading: false });
   });
 
   it("loadAll fetches all dashboard data in parallel", async () => {
