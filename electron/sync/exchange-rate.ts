@@ -22,6 +22,10 @@ export async function syncExchangeRates(): Promise<{ updated: number; message: s
       if (exists) {
         db.prepare('UPDATE currency SET rate_to_usd = ?, updated_at = datetime(\'now\') WHERE code = ?')
           .run(rate, code);
+      } else {
+        // Insert new currencies (PHP, THB, MYR, VND, etc.)
+        db.prepare('INSERT INTO currency (code, name, symbol, rate_to_usd, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\'))')
+          .run(code, code, '', rate);
       }
       // Log each fetch for audit
       db.prepare(

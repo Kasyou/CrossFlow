@@ -91,12 +91,13 @@ export function registerIpcHandlers(): void {
         ).get() as { id: string } | undefined;
         if (defaultWh && order.product_id) {
           try {
-            // Release the reserve first, then let the shipped status reflect actual deduction
-            // The existing UPDATE in updateStatus already handles the status change
-            // Here we just ensure the reserved qty is released on ship
+            // Shipping: deduct from reserved only, do NOT add back to available
+            // (available was already deducted during reserve/matched phase)
             const inv = InventoryRepo.getByProductWarehouse(order.product_id, defaultWh.id);
             if (inv && inv.reserved >= order.quantity) {
-              InventoryRepo.release(order.product_id, defaultWh.id, order.quantity, order.id);
+              const db = getDbSync();
+              db.prepare('UPDATE inventory SET reserved = reserved - ?, updated_at = datetime(\'now\') WHERE id = ?')
+                .run(order.quantity, inv.id);
             }
           } catch (e: any) {
             console.warn(`Failed to adjust inventory for shipped order ${order.id}: ${e.message}`);

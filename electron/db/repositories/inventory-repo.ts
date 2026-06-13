@@ -125,15 +125,20 @@ export const InventoryRepo = {
         i.product_id, i.warehouse_id,
         i.available, i.in_transit, p.safety_stock,
         COALESCE(
-          (SELECT CAST(COUNT(*) AS REAL) / 7 FROM "order" o
-           WHERE o.sku = p.sku AND o.order_time >= date('now', '-7 days')),
+          (SELECT CAST(COALESCE(SUM(o2.quantity), 0) AS REAL) / 7 FROM "order" o2
+           WHERE o2.sku = p.sku AND o2.order_time >= date('now', '-7 days')),
           0
         ) as recent_daily_sales,
         COALESCE(
-          (SELECT CAST(COUNT(*) AS REAL) / 30 FROM "order" o
-           WHERE o.sku = p.sku AND o.order_time >= date('now', '-30 days')),
+          (SELECT CAST(COALESCE(SUM(o3.quantity), 0) AS REAL) / 30 FROM "order" o3
+           WHERE o3.sku = p.sku AND o3.order_time >= date('now', '-30 days')),
           0
         ) as avg_daily_sales,
+        COALESCE(
+          (SELECT CAST(COALESCE(SUM(o4.quantity), 0) AS REAL) / 7 FROM "order" o4
+           WHERE o4.sku = p.sku AND o4.order_time >= date('now', '-14 days') AND o4.order_time < date('now', '-7 days')),
+          0
+        ) as mid_daily_sales,
         CASE WHEN w.type = 'overseas' THEN 28
              WHEN w.type = 'fba' THEN 14
              ELSE 5 END as lead_time_days
@@ -143,10 +148,9 @@ export const InventoryRepo = {
        WHERE i.available < p.safety_stock
        ORDER BY (i.available - p.safety_stock) ASC`
     ).all().map((r: any) => {
-      const weightedAvg = r.recent_daily_sales * 0.5
-        + (r.avg_daily_sales * 30 - r.recent_daily_sales * 7) / 23 * 0.3
-        + (r.avg_daily_sales * 30 - r.recent_daily_sales * 7) / 23 * 0.2;
-      // Use weighted average, fall back to simple average
+      // Weighted average: 7d 50%, 8-14d 30%, 15-30d 20%
+      const farDaily = (r.avg_daily_sales * 30 - r.recent_daily_sales * 7 - r.mid_daily_sales * 7) / 16;
+      const weightedAvg = r.recent_daily_sales * 0.5 + r.mid_daily_sales * 0.3 + Math.max(0, farDaily) * 0.2;
       const effectiveDaily = weightedAvg > 0 ? weightedAvg : r.avg_daily_sales;
       const moq = r.safety_stock;
       const baseQty = Math.ceil(effectiveDaily * r.lead_time_days * 1.2);
