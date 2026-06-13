@@ -1,5 +1,13 @@
 import OpenAI from 'openai';
-import { PROMPTS } from './prompts';
+
+const PROMPTS = {
+  translateProduct: (text: string, lang = 'English') =>
+    `Translate this product name to ${lang}, keep it concise for e-commerce:\n\n${text}\n\nTranslation:`,
+  classifyRefundReason: (reason: string) =>
+    `Classify this refund reason: "quality" (defect/damage), "logistics" (late/damaged in transit), "buyer" (changed mind), "other". Reply with only the category.\n\nReason: ${reason}\n\nCategory:`,
+  anomalyAlert: (ctx: string) =>
+    `Write a concise alert in Chinese for the seller (1-2 sentences):\n\n${ctx}\n\nAlert:`,
+};
 
 type Provider = 'deepseek' | 'qwen' | 'glm' | 'ollama';
 
