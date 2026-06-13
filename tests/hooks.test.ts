@@ -12,13 +12,14 @@ describe("useIpc", () => {
     };
   });
 
-  it("throws if electronAPI not available", () => {
+  it("returns no-op when electronAPI not available", () => {
     delete (window as any).electronAPI;
-    expect(() => {
-      const { result } = renderHook(() => useIpc());
-      // Access result to trigger the throw
-      void result.current;
-    }).toThrow("electronAPI not available");
+    const { result } = renderHook(() => useIpc());
+    expect(result.current).toBeDefined();
+    expect(result.current.invoke).toBeDefined();
+    expect(result.current.on).toBeDefined();
+    // No-op invoke should not throw
+    expect(() => result.current.invoke("test")).not.toThrow();
   });
 
   it("returns invoke and on functions", () => {
