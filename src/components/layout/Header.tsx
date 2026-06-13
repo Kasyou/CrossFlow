@@ -44,7 +44,7 @@ const Header: React.FC = () => {
     try {
       const api = (window as any).electronAPI;
       if (!api) { message.warning('请在 Electron 应用中运行'); return; }
-      const platforms = await api.invoke('platform:list');
+      const platforms = await api.invoke(IPC.PLATFORM_LIST);
       const enabledPlatforms = platforms.filter((p: any) => p.syncEnabled);
 
       if (enabledPlatforms.length === 0) {
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
 
       for (const p of enabledPlatforms) {
         try {
-          const result = await api.invoke('platform:syncNow', p.code);
+          const result = await api.invoke(IPC.PLATFORM_SYNC_NOW, p.code);
           if (result.status === 'failed') {
             failPlatforms++;
           } else {

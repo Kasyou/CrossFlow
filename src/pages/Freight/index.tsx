@@ -12,8 +12,11 @@ const Freight: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    const api = (window as any).electronAPI; if (!api) return;
-    setLoading(true); setShipments(await api.invoke(IPC.FREIGHT_LIST) || []); setLoading(false);
+    const api = (window as any).electronAPI; if (!api) { message.warning('请在 Electron 应用中运行'); return; }
+    setLoading(true);
+    try { setShipments(await api.invoke(IPC.FREIGHT_LIST) || []); }
+    catch { message.error('加载货运数据失败'); }
+    finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
 

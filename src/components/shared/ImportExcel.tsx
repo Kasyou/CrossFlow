@@ -10,6 +10,7 @@ const ImportExcel: React.FC<{ platformCode: string; platformName: string; onImpo
     setImporting(true);
     try {
       const api = (window as any).electronAPI;
+      if (!api) { message.error('导入功能仅支持在 Electron 应用中运行'); setImporting(false); return false; }
       const filePath = api.getPathForFile(file);
       const result = await api.invoke(IPC.ORDERS_IMPORT_EXCEL, filePath, platformCode);
       message.success(`导入完成：${result.message || `新增${result.orders?.length || 0}条订单`}`);

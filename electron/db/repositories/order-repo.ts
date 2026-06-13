@@ -83,7 +83,12 @@ export const OrderRepo = {
          quantity = excluded.quantity,
          unit_price = excluded.unit_price,
          total_amount = excluded.total_amount,
-         status = excluded.status,
+         status = CASE
+           WHEN "order".status = 'delivered' THEN 'delivered'
+           WHEN "order".status = 'shipped' AND excluded.status IN ('pending','matched') THEN 'shipped'
+           WHEN "order".status = 'refunding' AND excluded.status NOT IN ('refunded','cancelled') THEN 'refunding'
+           ELSE excluded.status
+         END,
          platform_status = excluded.platform_status,
          tracking_number = excluded.tracking_number,
          shipped_time = excluded.shipped_time,

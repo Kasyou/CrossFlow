@@ -42,8 +42,8 @@ const Products: React.FC = () => {
   };
 
   const handleDelete = async (sku: string) => {
-    await deleteProduct(sku);
-    message.success('商品已删除');
+    try { await deleteProduct(sku); message.success('商品已删除'); }
+    catch { message.error('删除失败，请重试'); }
   };
 
   const columns: ColumnsType<Product> = [

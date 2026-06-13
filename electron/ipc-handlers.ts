@@ -259,9 +259,9 @@ export function registerIpcHandlers(): void {
     }
 
     const totalQty = allOrders.reduce((sum, o) => sum + (o?.quantity || 0), 0);
+    const totalAmt = allOrders.reduce((sum, o) => sum + (parseFloat(String(o?.total_amount || '0'))), 0);
     const db = getDbSync();
-    // Update order quantity and merge order_items from cancelled orders
-    db.prepare('UPDATE "order" SET quantity = ? WHERE id = ?').run(totalQty, primary.id);
+    db.prepare('UPDATE "order" SET quantity = ?, total_amount = ? WHERE id = ?').run(totalQty, totalAmt, primary.id);
     for (const o of allOrders.slice(1)) {
       if (o) {
         db.prepare('UPDATE order_item SET order_id = ? WHERE order_id = ?').run(primary.id, o.id);

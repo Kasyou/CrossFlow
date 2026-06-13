@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Space, Tag, message, Tabs } from 'antd';
+import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Select, Space, Tag, message, Tabs } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useProcurementStore } from '../../stores/procurement-store';
 
@@ -76,7 +76,9 @@ const Procurement: React.FC = () => {
         setPoModal(false); message.success('采购单已创建');
       }} width={500}>
         <Form form={poForm} layout="vertical">
-          <Form.Item name="supplier_id" label="供应商ID" rules={[{ required: true }]}><Input placeholder="从供应商列表复制ID" /></Form.Item>
+          <Form.Item name="supplier_id" label="供应商" rules={[{ required: true }]}>
+            <Select placeholder="选择供应商" options={suppliers.map(s => ({ label: s.name, value: s.id }))} />
+          </Form.Item>
           <Form.List name="items">
             {(fields, { add, remove }) => (<>{fields.map(({ key, name }) => (<Space key={key}><Form.Item name={[name, 'sku']} rules={[{ required: true }]}><Input placeholder="SKU" /></Form.Item><Form.Item name={[name, 'quantity']}><InputNumber placeholder="数量" min={1} /></Form.Item><Form.Item name={[name, 'unit_cost']}><InputNumber placeholder="单价" min={0} /></Form.Item><Button icon={<DeleteOutlined />} onClick={() => remove(name)} /></Space>))}<Button type="dashed" onClick={() => add()} block>+ 添加商品</Button></>)}
           </Form.List>

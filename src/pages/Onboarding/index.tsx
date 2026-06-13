@@ -65,6 +65,7 @@ const Onboarding: React.FC = () => {
         {step < steps.length - 1 && (
           <Button type="primary" onClick={() => setStep(step + 1)}>下一步</Button>
         )}
+        <Button type="link" onClick={() => navigate('/dashboard')} style={{ marginLeft: 16 }}>跳过引导</Button>
       </div>
     </div>
   );

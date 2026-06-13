@@ -1,5 +1,6 @@
 import { createHmac } from 'crypto';
 import { PlatformRow } from '../db/repositories/platform-repo';
+import { rateLimitedFetch } from './rate-limiter';
 
 interface ShopeeOrderItemDetail { item_sku: string; model_sku: string; model_quantity_purchased: number; model_original_price: string | number; }
 
@@ -62,16 +63,26 @@ export async function syncShopeeOrders(platform: PlatformRow): Promise<{ orders:
     page_size: '100',
   };
 
-  // Step 1: get order list
-  const listUrl = buildSignedUrl(host, '/api/v2/order/get_order_list', baseParams, String(auth.partnerKey));
-  const listRes = await fetch(listUrl, { headers: { 'Content-Type': 'application/json' } });
-  const listData = await listRes.json() as any;
-  if (listData.error) throw new Error(`Shopee API error: ${listData.error} - ${listData.message}`);
-
-  const orderList = listData.response?.order_list || [];
+  // Step 1: get order list with pagination
   const partnerKey = String(auth.partnerKey);
   const partnerId = String(auth.partnerId);
   const shopId = String(auth.shopId);
+  let allOrderList: any[] = [];
+  let offset = 0;
+  const pageSize = 100;
+  do {
+    const paginatedParams = { ...baseParams, pagination_offset: String(offset), pagination_entries_per_page: String(pageSize) };
+    const listUrl = buildSignedUrl(host, '/api/v2/order/get_order_list', paginatedParams, partnerKey);
+    const listRes = await rateLimitedFetch('shopee', 10, 10, listUrl, { headers: { 'Content-Type': 'application/json' } });
+    const listData = await listRes.json() as any;
+    if (listData.error) throw new Error(`Shopee API error: ${listData.error} - ${listData.message}`);
+    const page = listData.response?.order_list || [];
+    allOrderList.push(...page);
+    offset += pageSize;
+    if (page.length < pageSize) break;
+  } while (offset < 1000); // safety cap
+
+  const orderList = allOrderList;
 
   // Step 2: fetch detail for each order to get real SKUs
   const enriched = await Promise.all(
