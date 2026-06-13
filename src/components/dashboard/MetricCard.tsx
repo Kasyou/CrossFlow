@@ -1,17 +1,15 @@
 import React from 'react';
-import { Card, Statistic } from 'antd';
+import { Card, Statistic, Skeleton } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 
 interface MetricCardProps {
-  title: string;
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  yesterdayValue?: number;
-  format?: (v: number) => string;
+  title: string; value: number;
+  prefix?: string; suffix?: string; yesterdayValue?: number;
+  format?: (v: number) => string; loading?: boolean;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, prefix, suffix, yesterdayValue, format }) => {
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, prefix, suffix, yesterdayValue, format, loading }) => {
+  if (loading) return <Card><Skeleton active paragraph={{ rows: 1 }} /></Card>;
   const diff = yesterdayValue !== undefined ? value - yesterdayValue : 0;
   const pct = yesterdayValue && yesterdayValue !== 0 ? Math.round((diff / yesterdayValue) * 100) : 0;
 
