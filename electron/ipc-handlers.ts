@@ -257,7 +257,14 @@ export function registerIpcHandlers(): void {
     }
 
     const totalQty = allOrders.reduce((sum, o) => sum + (o?.quantity || 0), 0);
-    getDbSync().prepare('UPDATE "order" SET quantity = ? WHERE id = ?').run(totalQty, primary.id);
+    const db = getDbSync();
+    // Update order quantity and merge order_items from cancelled orders
+    db.prepare('UPDATE "order" SET quantity = ? WHERE id = ?').run(totalQty, primary.id);
+    for (const o of allOrders.slice(1)) {
+      if (o) {
+        db.prepare('UPDATE order_item SET order_id = ? WHERE order_id = ?').run(primary.id, o.id);
+      }
+    }
     OrderRepo.batchUpdateStatus(orderIds.slice(1), 'cancelled');
     return { success: true, message: `已合并 ${orderIds.length} 个订单，总数量：${totalQty}` };
   }));

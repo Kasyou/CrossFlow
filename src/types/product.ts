@@ -2,13 +2,17 @@ export interface Product {
   id: string;
   sku: string;
   name: string;
-  nameEn: string | null;
-  imageUrl: string | null;
+  name_en: string | null;
+  nameEn?: string | null;
+  image_url: string | null;
   category: string | null;
-  costPrice: number;
-  weightKg: number;
-  safetyStock: number;
-  createdAt: string;
+  cost_price: number;
+  costPrice?: number;
+  weight_kg: number;
+  weightKg?: number;
+  safety_stock: number;
+  safetyStock?: number;
+  created_at: string;
 }
 
 export interface ProductPlatform {

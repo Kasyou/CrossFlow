@@ -101,7 +101,7 @@ SKU 全生命周期管理
 | **Shopee** | Open API (HMAC-SHA256) | 订单列表同步 |
 | **Temu** | Excel 导入 | 标准订单表格解析（中英文列名兼容） |
 | **TikTok Shop** | Excel 导入 | 无公开 API，表格导入 |
-| **Lazada** | 🔜 | 计划中 |
+| **Lazada** | Open Platform API (HMAC-SHA256) | — | ✅ |
 
 ### 系统功能
 
@@ -122,7 +122,7 @@ SKU 全生命周期管理
 │  │  主进程 (Main) │  │      渲染进程 (Renderer)       │ │
 │  │              │  │                              │ │
 │  │  ipc-handlers│  │  React 18 + Ant Design 5     │ │
-│  │  sync/       │◄─┤  Zustand Stores (6)          │ │
+│  │  sync/       │◄─┤  Zustand Stores (9)          │ │
 │  │  db/         │  │  ECharts                     │ │
 │  │  ai/         │  │  React Router (Hash)          │ │
 │  │  tray/       │  │                              │ │
