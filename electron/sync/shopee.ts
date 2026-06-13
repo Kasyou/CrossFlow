@@ -1,6 +1,8 @@
 import { createHmac } from 'crypto';
 import { PlatformRow } from '../db/repositories/platform-repo';
 
+interface ShopeeOrderItemDetail { item_sku: string; model_sku: string; model_quantity_purchased: number; model_original_price: string | number; }
+
 interface ShopeeOrder {
   platform_order_id: string;
   sku: string;
@@ -13,6 +15,7 @@ interface ShopeeOrder {
   status: string;
   platform_status: string;
   order_time: string;
+  _items?: { sku: string; quantity: number; unit_price: number; currency: string }[];
 }
 
 interface ShopeeOrderItem {
@@ -74,7 +77,13 @@ export async function syncShopeeOrders(platform: PlatformRow): Promise<{ orders:
   const enriched = await Promise.all(
     orderList.map(async (o: any) => {
       const items = await fetchOrderDetail(host, partnerId, partnerKey, shopId, o.order_sn, timestamp);
-      const primaryItem = items[0] || ({} as ShopeeOrderItem);
+      const primaryItem = items[0] || ({} as ShopeeOrderItemDetail);
+      const allItems: ShopeeOrder['_items'] = items.map((item: ShopeeOrderItemDetail) => ({
+        sku: item.item_sku || item.model_sku || '',
+        quantity: item.model_quantity_purchased || 1,
+        unit_price: parseFloat(String(item.model_original_price || '0')),
+        currency: o.currency || 'USD',
+      }));
       return {
         platform_order_id: o.order_sn,
         sku: primaryItem.item_sku || primaryItem.model_sku || '',
@@ -87,6 +96,7 @@ export async function syncShopeeOrders(platform: PlatformRow): Promise<{ orders:
         status: mapShopeeStatus(o.order_status),
         platform_status: o.order_status,
         order_time: new Date(o.create_time * 1000).toISOString(),
+        _items: allItems.length > 1 ? allItems : undefined,
       } as ShopeeOrder;
     }),
   );

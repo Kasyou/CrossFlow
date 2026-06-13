@@ -61,8 +61,10 @@ export const InventoryRepo = {
 
   reserve(productId: string, warehouseId: string, quantity: number, orderId: string): void {
     const inv = this.ensure(productId, warehouseId);
+    if (quantity <= 0) throw new Error('Reserve quantity must be positive');
+    if (inv.available < quantity) throw new Error(`Insufficient stock: requested ${quantity}, available ${inv.available}`);
     const db = getDbSync();
-    const tx = db.transaction(() => {
+    db.transaction(() => {
       const newAvailable = inv.available - quantity;
       const newReserved = inv.reserved + quantity;
       db.prepare('UPDATE inventory SET available = ?, reserved = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newReserved, inv.id);
@@ -70,13 +72,12 @@ export const InventoryRepo = {
         'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'order_reserve', -quantity, newAvailable, newReserved, orderId);
     });
-    tx();
   },
 
   release(productId: string, warehouseId: string, quantity: number, orderId: string): void {
     const inv = this.ensure(productId, warehouseId);
     const db = getDbSync();
-    const tx = db.transaction(() => {
+    db.transaction(() => {
       const newAvailable = inv.available + quantity;
       const newReserved = Math.max(0, inv.reserved - quantity);
       db.prepare('UPDATE inventory SET available = ?, reserved = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newReserved, inv.id);
@@ -84,20 +85,18 @@ export const InventoryRepo = {
         'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'order_release', quantity, newAvailable, newReserved, orderId);
     });
-    tx();
   },
 
   restock(productId: string, warehouseId: string, quantity: number, note?: string): void {
     const inv = this.ensure(productId, warehouseId);
     const db = getDbSync();
-    const tx = db.transaction(() => {
+    db.transaction(() => {
       const newInTransit = inv.in_transit + quantity;
       db.prepare('UPDATE inventory SET in_transit = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newInTransit, inv.id);
       db.prepare(
         'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'restock', quantity, inv.available, inv.reserved, note || null);
     });
-    tx();
   },
 
   receiveRestock(productId: string, warehouseId: string, quantity: number): void {
@@ -107,7 +106,7 @@ export const InventoryRepo = {
       throw new Error(`Cannot receive ${quantity}, only ${inv.in_transit} in transit`);
     }
     const db = getDbSync();
-    const tx = db.transaction(() => {
+    db.transaction(() => {
       const newAvailable = inv.available + quantity;
       const newInTransit = Math.max(0, inv.in_transit - quantity);
       db.prepare('UPDATE inventory SET available = ?, in_transit = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newAvailable, newInTransit, inv.id);
@@ -115,7 +114,6 @@ export const InventoryRepo = {
         'INSERT INTO inventory_log (id, product_id, warehouse_id, change_type, quantity, available_after, reserved_after, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       ).run(uuid(), productId, warehouseId, 'restock', quantity, newAvailable, inv.reserved);
     });
-    tx();
   },
 
   getRestockSuggestions(): any[] {

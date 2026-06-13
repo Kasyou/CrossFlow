@@ -85,14 +85,22 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
       }
       const saved = OrderRepo.upsert({ ...order, platform_id: platform.id });
 
-      // Write order_item if not already present
+      // Write order_item rows: use _items array if available, else single-item fallback
       const db = getDbSync();
-      const existingItem = db.prepare('SELECT id FROM order_item WHERE order_id = ? AND sku = ?').get(saved.id, saved.sku) as any;
-      if (!existingItem) {
-        const { v4: uuid } = require('uuid');
-        db.prepare(
-          'INSERT INTO order_item (id, order_id, product_id, sku, platform_sku, quantity, unit_price, total_price, item_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)'
-        ).run(uuid(), saved.id, saved.product_id, saved.sku, rawPlatformSku, saved.quantity, saved.unit_price, saved.total_amount);
+      const { v4: uuid } = require('uuid');
+      const itemList = (order._items && order._items.length > 0) ? order._items : [{ sku: order.sku, quantity: order.quantity, unit_price: order.unit_price, currency: order.currency }];
+      let idx = 0;
+      for (const item of itemList) {
+        const itemResolved = resolveSku(code, item.sku);
+        const itemProductId = itemResolved ? itemResolved.product_id : saved.product_id;
+        const itemSku = itemResolved ? itemResolved.sku : item.sku;
+        const existingItem = db.prepare('SELECT id FROM order_item WHERE order_id = ? AND sku = ? AND item_index = ?').get(saved.id, itemSku, idx) as any;
+        if (!existingItem) {
+          db.prepare(
+            'INSERT INTO order_item (id, order_id, product_id, sku, platform_sku, quantity, unit_price, total_price, item_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          ).run(uuid(), saved.id, itemProductId, itemSku, item.sku, item.quantity, item.unit_price, item.quantity * item.unit_price, idx);
+        }
+        idx++;
       }
       synced++;
     }

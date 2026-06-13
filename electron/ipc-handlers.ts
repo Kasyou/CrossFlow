@@ -113,8 +113,15 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.ORDERS_IMPORT_EXCEL, wrapHandler(async (_e, filePath, platformCode) => {
     switch (platformCode) {
-      case 'temu': return importTemuExcel(filePath);
-      default: return importTemuExcel(filePath);
+      case 'temu':
+      case 'tiktok':
+        return importTemuExcel(filePath);
+      case 'amazon':
+      case 'shopee':
+      case 'lazada':
+        return { orders: [], message: `${platformCode} supports API sync. Use the sync button instead of Excel import.` };
+      default:
+        return importTemuExcel(filePath);
     }
   }));
 

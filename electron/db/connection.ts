@@ -10,6 +10,7 @@ import migration005 from './migrations/005_reviews';
 import migration006 from './migrations/006_users';
 import migration007 from './migrations/007_freight';
 import migration008 from './migrations/008_platform_mode';
+import migration009 from './migrations/009_add_indexes';
 
 interface Migration {
   version: number;
@@ -26,6 +27,7 @@ const migrations: Migration[] = [
   { version: 6, name: 'users', sql: migration006 },
   { version: 7, name: 'freight', sql: migration007 },
   { version: 8, name: 'platform_mode', sql: migration008 },
+  { version: 9, name: 'add_indexes', sql: migration009 },
 ];
 
 let SQL: SqlJsStatic | null = null;
@@ -57,7 +59,9 @@ export async function getDb(): Promise<SqlJsDatabase> {
 export function saveDb(): void {
   if (db && dbPath) {
     const data = db.export();
-    fs.writeFileSync(dbPath, Buffer.from(data));
+    const tmpPath = dbPath + '.tmp';
+    fs.writeFileSync(tmpPath, Buffer.from(data));
+    fs.renameSync(tmpPath, dbPath);
   }
 }
 
@@ -161,18 +165,16 @@ class DatabaseWrapper {
     scheduleSave();
   }
 
-  transaction<T extends (...args: any[]) => void>(fn: T): T {
-    return ((...args: any[]) => {
-      this.db.run('BEGIN');
-      try {
-        fn(...args);
-        this.db.run('COMMIT');
-        scheduleSave();
-      } catch (e) {
-        this.db.run('ROLLBACK');
-        throw e;
-      }
-    }) as unknown as T;
+  transaction<T extends (db: DatabaseWrapper) => void>(fn: T): void {
+    this.db.run('BEGIN');
+    try {
+      fn(this);
+      this.db.run('COMMIT');
+      scheduleSave();
+    } catch (e) {
+      this.db.run('ROLLBACK');
+      throw e;
+    }
   }
 }
 

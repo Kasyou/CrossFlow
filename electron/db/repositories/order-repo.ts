@@ -104,11 +104,11 @@ export const OrderRepo = {
   },
 
   batchUpdateStatus(ids: string[], status: string): void {
-    const stmt = getDbSync().prepare(`UPDATE "order" SET status = ? WHERE id = ?`);
-    const tx = getDbSync().transaction((orderIds: string[]) => {
-      for (const id of orderIds) stmt.run(status, id);
+    const db = getDbSync();
+    const stmt = db.prepare(`UPDATE "order" SET status = ? WHERE id = ?`);
+    db.transaction(() => {
+      for (const id of ids) stmt.run(status, id);
     });
-    tx(ids);
   },
 
   getMergeableOrders(): any[] {

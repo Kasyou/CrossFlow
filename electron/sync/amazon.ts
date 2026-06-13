@@ -12,6 +12,7 @@ interface AmazonOrder {
   status: string;
   platform_status: string;
   order_time: string;
+  _items?: { sku: string; quantity: number; unit_price: number; currency: string }[];
 }
 
 // Token-bucket rate limiter for SP-API (burst 5, refill 1/second)
@@ -117,18 +118,25 @@ async function fetchOrders(accessToken: string, region: string, marketplaceId?: 
     orders.map(async (o: any) => {
       const items = await fetchOrderItems(baseUrl, accessToken, o.AmazonOrderId);
       const primaryItem = items[0] || {};
+      const allItems: AmazonOrder['_items'] = items.map((item: any) => ({
+        sku: item.SellerSKU || item.ASIN || '',
+        quantity: item.QuantityOrdered || 1,
+        unit_price: parseFloat(item.ItemPrice?.Amount || '0'),
+        currency: item.ItemPrice?.CurrencyCode || o.OrderTotal?.CurrencyCode || 'USD',
+      }));
       return {
         platform_order_id: o.AmazonOrderId,
         sku: primaryItem.SellerSKU || primaryItem.ASIN || '',
         quantity: primaryItem.QuantityOrdered || o.NumberOfItemsUnshipped || 1,
         unit_price: parseFloat(primaryItem.ItemPrice?.Amount || o.OrderTotal?.Amount || '0'),
         currency: primaryItem.ItemPrice?.CurrencyCode || o.OrderTotal?.CurrencyCode || 'USD',
-        total_amount: parseFloat(primaryItem.ItemPrice?.Amount || o.OrderTotal?.Amount || '0'),
+        total_amount: parseFloat(o.OrderTotal?.Amount || '0'),
         buyer_name: o.BuyerName || null,
         shipping_address: o.ShippingAddress ? JSON.stringify(o.ShippingAddress) : null,
         status: mapOrderStatus(o.OrderStatus),
         platform_status: o.OrderStatus,
         order_time: o.PurchaseDate,
+        _items: allItems.length > 1 ? allItems : undefined,
       } as AmazonOrder;
     }),
   );
