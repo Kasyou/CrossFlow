@@ -293,7 +293,7 @@ export function registerIpcHandlers(): void {
     return await adapter.translate(text);
   }));
 
-  ipcMain.handle('ai:optimizeListing', wrapHandler(async (_e, title, features) => {
+  ipcMain.handle(IPC.AI_OPTIMIZE_LISTING, wrapHandler(async (_e, title, features) => {
     const store = getStore();
     const apiKey = getSecureSetting('aiApiKey') || '';
     if (!apiKey) return '[请在设置中配置AI API Key]';
@@ -304,7 +304,7 @@ export function registerIpcHandlers(): void {
     return await adapter.translate(prompt);
   }));
 
-  ipcMain.handle('ai:customerReply', wrapHandler(async (_e, buyerMessage, orderContext) => {
+  ipcMain.handle(IPC.AI_CUSTOMER_REPLY, wrapHandler(async (_e, buyerMessage, orderContext) => {
     const store = getStore();
     const apiKey = getSecureSetting('aiApiKey') || '';
     if (!apiKey) return '[请在设置中配置AI API Key]';
@@ -316,65 +316,65 @@ export function registerIpcHandlers(): void {
   }));
 
   // ---- Supplier ----
-  ipcMain.handle('supplier:list', wrapHandler(async () => {
+  ipcMain.handle(IPC.SUPPLIER_LIST, wrapHandler(async () => {
     return SupplierRepo.getAll();
   }));
 
-  ipcMain.handle('supplier:create', wrapHandler(async (_e, data) => {
+  ipcMain.handle(IPC.SUPPLIER_CREATE, wrapHandler(async (_e, data) => {
     return SupplierRepo.create(data);
   }));
 
-  ipcMain.handle('supplier:update', wrapHandler(async (_e, id, fields) => {
+  ipcMain.handle(IPC.SUPPLIER_UPDATE, wrapHandler(async (_e, id, fields) => {
     SupplierRepo.update(id, fields);
     return { success: true };
   }));
 
-  ipcMain.handle('supplier:delete', wrapHandler(async (_e, id) => {
+  ipcMain.handle(IPC.SUPPLIER_DELETE, wrapHandler(async (_e, id) => {
     SupplierRepo.delete(id);
     return { success: true };
   }));
 
   // ---- Purchase Order ----
-  ipcMain.handle('po:list', wrapHandler(async () => {
+  ipcMain.handle(IPC.PO_LIST, wrapHandler(async () => {
     return PurchaseOrderRepo.getAll();
   }));
 
-  ipcMain.handle('po:create', wrapHandler(async (_e, supplierId, items) => {
+  ipcMain.handle(IPC.PO_CREATE, wrapHandler(async (_e, supplierId, items) => {
     return PurchaseOrderRepo.create(supplierId, items);
   }));
 
-  ipcMain.handle('po:updateStatus', wrapHandler(async (_e, id, status) => {
+  ipcMain.handle(IPC.PO_UPDATE_STATUS, wrapHandler(async (_e, id, status) => {
     PurchaseOrderRepo.updateStatus(id, status);
     return { success: true };
   }));
 
-  ipcMain.handle('po:delete', wrapHandler(async (_e, id) => {
+  ipcMain.handle(IPC.PO_DELETE, wrapHandler(async (_e, id) => {
     PurchaseOrderRepo.delete(id);
     return { success: true };
   }));
 
   // ---- Reviews ----
-  ipcMain.handle('review:list', wrapHandler(async (_e, filter) => {
+  ipcMain.handle(IPC.REVIEW_LIST, wrapHandler(async (_e, filter) => {
     return ReviewRepo.getAll(filter || {});
   }));
 
-  ipcMain.handle('review:alerts', wrapHandler(async () => {
+  ipcMain.handle(IPC.REVIEW_ALERTS, wrapHandler(async () => {
     return ReviewRepo.getNegativeAlerts();
   }));
 
-  ipcMain.handle('review:acknowledge', wrapHandler(async (_e, alertId) => {
+  ipcMain.handle(IPC.REVIEW_ACKNOWLEDGE, wrapHandler(async (_e, alertId) => {
     ReviewRepo.acknowledgeAlert(alertId);
     return { success: true };
   }));
 
   // ---- Fee Config ----
-  ipcMain.handle('feeConfig:list', wrapHandler(async () => {
+  ipcMain.handle(IPC.FEE_CONFIG_LIST, wrapHandler(async () => {
     return getDbSync().prepare(
       `SELECT fc.*, p.name as platform_name FROM fee_config fc LEFT JOIN platform p ON fc.platform_id = p.id`
     ).all();
   }));
 
-  ipcMain.handle('feeConfig:save', wrapHandler(async (_e, data) => {
+  ipcMain.handle(IPC.FEE_CONFIG_SAVE, wrapHandler(async (_e, data) => {
     const db = getDbSync();
     const existing = db.prepare('SELECT id FROM fee_config WHERE platform_id = ? AND fee_type = ?').get(data.platform_id, data.fee_type) as any;
     if (existing) {
@@ -386,12 +386,12 @@ export function registerIpcHandlers(): void {
   }));
 
   // ---- Finance ----
-  ipcMain.handle('finance:exchangeRate', wrapHandler(async () => {
+  ipcMain.handle(IPC.FINANCE_EXCHANGE_RATE, wrapHandler(async () => {
     const result = await syncExchangeRates();
     return result;
   }));
 
-  ipcMain.handle('finance:summary', wrapHandler(async () => {
+  ipcMain.handle(IPC.FINANCE_SUMMARY, wrapHandler(async () => {
     const db = getDbSync();
     const revenue = db.prepare(
       `SELECT o.platform_id as platformId, p.name as platformName,
@@ -422,28 +422,28 @@ export function registerIpcHandlers(): void {
   }));
 
   // ---- Auth ----
-  ipcMain.handle('auth:login', wrapHandler(async (_e, username, password) => {
+  ipcMain.handle(IPC.AUTH_LOGIN, wrapHandler(async (_e, username, password) => {
     return authenticate(username, password);
   }));
 
-  ipcMain.handle('auth:listUsers', wrapHandler(async () => {
+  ipcMain.handle(IPC.AUTH_LIST_USERS, wrapHandler(async () => {
     return getAllUsers();
   }));
 
-  ipcMain.handle('auth:createUser', wrapHandler(async (_e, username, password, displayName, role) => {
+  ipcMain.handle(IPC.AUTH_CREATE_USER, wrapHandler(async (_e, username, password, displayName, role) => {
     const user = createUser(username, password, displayName, role);
     auditLog(user.id, 'user:create', 'user', user.id, `Created user ${username} with role ${role}`);
     return user;
   }));
 
   // ---- Freight ----
-  ipcMain.handle('freight:list', wrapHandler(async () => {
+  ipcMain.handle(IPC.FREIGHT_LIST, wrapHandler(async () => {
     return getDbSync().prepare(
       `SELECT * FROM freight_shipment ORDER BY created_at DESC`
     ).all();
   }));
 
-  ipcMain.handle('freight:create', wrapHandler(async (_e, data) => {
+  ipcMain.handle(IPC.FREIGHT_CREATE, wrapHandler(async (_e, data) => {
     const db = getDbSync();
     const id = uuid();
     db.prepare(
@@ -457,20 +457,20 @@ export function registerIpcHandlers(): void {
   }));
 
   // ---- Export ----
-  ipcMain.handle('export:orders', wrapHandler(async (_e, filter) => {
+  ipcMain.handle(IPC.EXPORT_ORDERS, wrapHandler(async (_e, filter) => {
     return exportOrders(filter);
   }));
 
-  ipcMain.handle('export:inventory', wrapHandler(async () => {
+  ipcMain.handle(IPC.EXPORT_INVENTORY, wrapHandler(async () => {
     return exportInventory();
   }));
 
-  ipcMain.handle('export:profitReport', wrapHandler(async (_e, days) => {
+  ipcMain.handle(IPC.EXPORT_PROFIT, wrapHandler(async (_e, days) => {
     return exportProfitReport(days || 30);
   }));
 
   // ---- Sync Log ----
-  ipcMain.handle('syncLog:recent', wrapHandler(async () => {
+  ipcMain.handle(IPC.SYNC_LOG_RECENT, wrapHandler(async () => {
     return getDbSync().prepare(
       `SELECT sl.*, p.name as platform_name
        FROM sync_log sl LEFT JOIN platform p ON sl.platform_id = p.id

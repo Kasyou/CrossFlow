@@ -57,4 +57,48 @@ export const IPC = {
 
   // Inventory (additional)
   INVENTORY_RESTOCK_SUGGESTIONS: 'inventory:restockSuggestions',
+
+  // Supplier
+  SUPPLIER_LIST: 'supplier:list',
+  SUPPLIER_CREATE: 'supplier:create',
+  SUPPLIER_UPDATE: 'supplier:update',
+  SUPPLIER_DELETE: 'supplier:delete',
+
+  // Purchase Order
+  PO_LIST: 'po:list',
+  PO_CREATE: 'po:create',
+  PO_UPDATE_STATUS: 'po:updateStatus',
+  PO_DELETE: 'po:delete',
+
+  // Reviews
+  REVIEW_LIST: 'review:list',
+  REVIEW_ALERTS: 'review:alerts',
+  REVIEW_ACKNOWLEDGE: 'review:acknowledge',
+
+  // Freight
+  FREIGHT_LIST: 'freight:list',
+  FREIGHT_CREATE: 'freight:create',
+
+  // Finance
+  FEE_CONFIG_LIST: 'feeConfig:list',
+  FEE_CONFIG_SAVE: 'feeConfig:save',
+  FINANCE_EXCHANGE_RATE: 'finance:exchangeRate',
+  FINANCE_SUMMARY: 'finance:summary',
+
+  // Auth
+  AUTH_LOGIN: 'auth:login',
+  AUTH_LIST_USERS: 'auth:listUsers',
+  AUTH_CREATE_USER: 'auth:createUser',
+
+  // Export
+  EXPORT_ORDERS: 'export:orders',
+  EXPORT_INVENTORY: 'export:inventory',
+  EXPORT_PROFIT: 'export:profitReport',
+
+  // Sync Log
+  SYNC_LOG_RECENT: 'syncLog:recent',
+
+  // AI (additional)
+  AI_OPTIMIZE_LISTING: 'ai:optimizeListing',
+  AI_CUSTOMER_REPLY: 'ai:customerReply',
 } as const;

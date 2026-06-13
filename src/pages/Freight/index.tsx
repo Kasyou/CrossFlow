@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Typography, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { IPC } from '../../shared/ipc-channels';
 
 const { Title } = Typography;
 
@@ -12,7 +13,7 @@ const Freight: React.FC = () => {
 
   const load = async () => {
     const api = (window as any).electronAPI; if (!api) return;
-    setLoading(true); setShipments(await api.invoke('freight:list') || []); setLoading(false);
+    setLoading(true); setShipments(await api.invoke(IPC.FREIGHT_LIST) || []); setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
@@ -37,7 +38,7 @@ const Freight: React.FC = () => {
       <Modal title="新建货运单" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={async () => {
         const v = await form.validateFields();
         const api = (window as any).electronAPI; if (!api) return;
-        await api.invoke('freight:create', v);
+        await api.invoke(IPC.FREIGHT_CREATE, v);
         setModalOpen(false); message.success('货运单已创建'); load();
       }}>
         <Form form={form} layout="vertical">

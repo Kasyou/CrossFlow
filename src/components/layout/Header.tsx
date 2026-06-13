@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Badge, Space, Popover, List, Button, Tag, message, Typography } from 'antd';
 import { BellOutlined, SyncOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { IPC } from '../../shared/ipc-channels';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -24,7 +25,7 @@ const Header: React.FC = () => {
       setLoadingLogs(true);
       const api = (window as any).electronAPI;
       if (!api) return;
-      const logs = await api.invoke('syncLog:recent');
+      const logs = await api.invoke(IPC.SYNC_LOG_RECENT);
       setNotifications(logs || []);
       setLoadingLogs(false);
     } catch {
