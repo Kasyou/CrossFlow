@@ -42,9 +42,9 @@ export function checkAllTracking(): TrackingStatus[] {
 
     let status: TrackingStatus['status'] = 'in_transit';
     if (isInternational) {
-      if (daysInTransit > 21) status = 'delayed';
+      if (daysInTransit >= 21) status = 'delayed';
     } else {
-      if (daysInTransit > 7) status = 'delayed';
+      if (daysInTransit >= 7) status = 'delayed';
     }
 
     results.push({

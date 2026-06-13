@@ -143,13 +143,14 @@ async function fetchLazadaOrderItems(
 }
 
 function mapLazadaStatus(status: string): string {
-  // Lazada statuses: pending, ready_to_ship, shipped, delivered, returned, cancelled, failed
   const map: Record<string, string> = {
     'pending': 'pending', 'unpaid': 'pending',
-    'ready_to_ship': 'matched', 'processing': 'matched',
+    'ready_to_ship': 'matched', 'processing': 'matched', 'ready_to_ship_pending': 'matched',
+    'packed': 'matched',
     'shipped': 'shipped', 'in_transit': 'shipped',
     'delivered': 'delivered', 'received': 'delivered',
     'returned': 'refunding', 'cancelled': 'cancelled', 'failed': 'cancelled',
+    'lost_by_3pl': 'cancelled',
   };
-  return map[status.toLowerCase()] || 'pending';
+  return map[status.toLowerCase()] || 'matched';
 }

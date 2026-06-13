@@ -187,7 +187,7 @@ function mapTikTokStatus(status: string): string {
   const map: Record<string, string> = {
     'unpaid': 'pending', 'awaiting_payment': 'pending',
     'awaiting_shipment': 'matched', 'ready_to_ship': 'matched',
-    'shipped': 'shipped', 'in_transit': 'shipped', 'partially_shipped': 'shipped',
+    'shipped': 'shipped', 'in_transit': 'shipped', 'partially_shipped': 'matched',
     'delivered': 'delivered', 'completed': 'delivered',
     'cancelled': 'cancelled', 'returned': 'refunding',
   };

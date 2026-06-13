@@ -158,7 +158,9 @@ function getShopeeHost(site: string): string {
 function mapShopeeStatus(status: string): string {
   const map: Record<string, string> = {
     'UNPAID': 'pending', 'READY_TO_SHIP': 'matched', 'PROCESSED': 'matched',
-    'SHIPPED': 'shipped', 'COMPLETED': 'delivered', 'CANCELLED': 'cancelled', 'IN_CANCEL': 'refunding',
+    'SHIPPED': 'shipped', 'TO_CONFIRM_RECEIVE': 'shipped', 'COMPLETED': 'delivered',
+    'CANCELLED': 'cancelled', 'IN_CANCEL': 'refunding', 'INVOICE_PENDING': 'matched',
+    'TO_RETURN': 'refunding', 'LOST': 'cancelled', 'DAMAGED': 'refunding',
   };
-  return map[status] || 'pending';
+  return map[status] || map[status.toUpperCase()] || 'matched';
 }

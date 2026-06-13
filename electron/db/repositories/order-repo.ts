@@ -41,7 +41,7 @@ export const OrderRepo = {
     if (filter.platform_id) { conditions.push('o.platform_id = ?'); vals.push(filter.platform_id); }
     if (filter.sku) { conditions.push('o.sku LIKE ?'); vals.push(`%${filter.sku}%`); }
     if (filter.dateFrom) { conditions.push('o.order_time >= ?'); vals.push(filter.dateFrom); }
-    if (filter.dateTo) { conditions.push('o.order_time <= ?'); vals.push(filter.dateTo); }
+    if (filter.dateTo) { conditions.push('o.order_time < date(?, \'+1 day\')'); vals.push(filter.dateTo); }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const limit = filter.limit ?? 50;

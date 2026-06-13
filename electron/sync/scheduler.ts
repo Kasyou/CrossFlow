@@ -11,6 +11,7 @@ import { getDbSync } from '../db/connection';
 export { getDashboardMetrics } from '../db/dashboard-metrics';
 
 const jobs = new Map<string, cron.ScheduledTask>();
+const syncing = new Set<string>(); // concurrency guard
 
 export function startAllSyncJobs(): void {
   const platforms = PlatformRepo.getAll();
@@ -58,8 +59,10 @@ export async function runManualSync(code: string): Promise<{ status: string; rec
 }
 
 async function syncPlatform(code: string): Promise<{ status: string; records: number; message: string }> {
+  if (syncing.has(code)) return { status: 'partial', records: 0, message: 'Sync already in progress' };
+  syncing.add(code);
   const platform = PlatformRepo.getByCode(code);
-  if (!platform) return { status: 'failed', records: 0, message: 'Platform not found' };
+  if (!platform) { syncing.delete(code); return { status: 'failed', records: 0, message: 'Platform not found' }; }
 
   const logId = SyncLogRepo.create(platform.id, 'order');
 
@@ -118,6 +121,8 @@ async function syncPlatform(code: string): Promise<{ status: string; records: nu
   } catch (err: any) {
     SyncLogRepo.finish(logId, 'failed', err.message, 0);
     return { status: 'failed', records: 0, message: err.message };
+  } finally {
+    syncing.delete(code);
   }
 }
 
